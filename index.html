@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Утренний P&L — дашборды для CEO · by Василий Гаврилов</title>
+<meta name="description" content="Дашборд принятия решений для CEO. Живой P&L, когортный маркетинг, моделирование «что если». За 2 недели, на твоих данных из Битрикс / amoCRM.">
+<meta property="og:title" content="Утренний P&L — дашборды для CEO">
+<meta property="og:description" content="Дашборд, на котором видно, какое решение принять завтра утром. За 2 недели.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0e17;
+  --bg-2:#111625;
+  --panel:rgba(255,255,255,.04);
+  --panel-2:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.08);
+  --border-2:rgba(255,255,255,.14);
+  --text:#e7ebf5;
+  --text-2:#9aa3b8;
+  --text-3:#6b7490;
+  --blue:#60a5fa;
+  --blue-2:#3b82f6;
+  --green:#34d399;
+  --red:#f87171;
+  --amber:#fbbf24;
+  --accent:#a78bfa;
+  --radius:14px;
+  --maxw:1120px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+body{
+  background:
+    radial-gradient(1200px 600px at 15% -10%,rgba(96,165,250,.12),transparent 60%),
+    radial-gradient(900px 500px at 90% 10%,rgba(167,139,250,.08),transparent 60%),
+    var(--bg);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+.container{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+section{padding:96px 0;position:relative}
+section:first-of-type{padding-top:32px}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(18px);background:rgba(11,14,23,.72);border-bottom:1px solid var(--border)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;max-width:var(--maxw);margin:0 auto}
+.logo{font-weight:800;font-size:17px;letter-spacing:-.01em}
+.logo .dot{color:var(--green)}
+.logo .by{color:var(--text-3);font-weight:500;font-size:14px;margin-left:6px}
+.nav-cta{display:flex;gap:10px;align-items:center}
+.nav-cta a.link{color:var(--text-2);font-size:14px;font-weight:500}
+.nav-cta a.link:hover{color:var(--text)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 20px;border-radius:10px;font-weight:600;font-size:15px;transition:transform .15s,background .2s,border .2s;cursor:pointer;border:none;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,#3b82f6,#60a5fa);color:#fff;box-shadow:0 6px 24px rgba(59,130,246,.32)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 32px rgba(59,130,246,.45)}
+.btn-secondary{background:var(--panel);color:var(--text);border:1px solid var(--border-2)}
+.btn-secondary:hover{background:var(--panel-2);border-color:rgba(255,255,255,.24)}
+.btn-big{padding:18px 30px;font-size:17px;border-radius:12px}
+
+/* HERO */
+.hero{padding-top:64px}
+.hero-tag{display:inline-block;padding:6px 12px;background:var(--panel);border:1px solid var(--border-2);border-radius:999px;font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:24px;letter-spacing:.02em}
+.hero-tag .pulse{display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;margin-right:8px;vertical-align:middle;box-shadow:0 0 12px var(--green)}
+.hero h1{font-size:56px;font-weight:800;letter-spacing:-.03em;line-height:1.05;margin-bottom:22px;max-width:900px}
+.hero h1 span{background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:19px;color:var(--text-2);max-width:720px;margin-bottom:36px;line-height:1.5}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:56px}
+.hero-mock{position:relative;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border-2);background:var(--panel);box-shadow:0 24px 80px rgba(0,0,0,.4)}
+.hero-mock-head{display:flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(0,0,0,.3);border-bottom:1px solid var(--border)}
+.dots{display:flex;gap:6px}
+.dots span{width:10px;height:10px;border-radius:50%}
+.dots span:nth-child(1){background:#ff5f56}
+.dots span:nth-child(2){background:#ffbd2e}
+.dots span:nth-child(3){background:#27c93f}
+.mock-url{font-size:12px;color:var(--text-3);font-family:monospace;margin-left:12px}
+
+/* DASHBOARD MOCK */
+.dashmock{padding:24px;display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;min-height:380px}
+.dashmock .wide{grid-column:span 3}
+.dm-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:16px}
+.dm-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.dm-value{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.dm-delta{font-size:13px;margin-top:4px;color:var(--green)}
+.dm-delta.red{color:var(--red)}
+.dm-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;margin-top:12px;overflow:hidden;position:relative}
+.dm-bar i{position:absolute;top:0;left:0;bottom:0;border-radius:3px;background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+.dm-wide-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px}
+.dm-wide-title{font-size:14px;font-weight:600}
+.dm-wide-sub{font-size:11px;color:var(--text-3)}
+.dm-bars{display:flex;align-items:flex-end;gap:8px;height:120px}
+.dm-bars div{flex:1;background:linear-gradient(180deg,#3b82f6,#60a5fa);border-radius:4px 4px 0 0;opacity:.85}
+.dm-bars div:nth-child(5){background:linear-gradient(180deg,#34d399,#10b981)}
+.dm-bars div:nth-child(6){background:linear-gradient(180deg,#34d399,#10b981);opacity:1}
+
+/* SECTION HEADS */
+.eyebrow{color:var(--blue);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+h2{font-size:40px;font-weight:700;letter-spacing:-.025em;line-height:1.15;margin-bottom:16px;max-width:760px}
+h2.big{font-size:46px}
+.lede{font-size:18px;color:var(--text-2);max-width:660px;margin-bottom:48px}
+
+/* 3 QUESTIONS */
+.questions{padding-top:48px}
+.q-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+.q-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;position:relative;overflow:hidden}
+.q-card::before{content:attr(data-n);position:absolute;top:12px;right:16px;font-size:40px;font-weight:800;color:rgba(255,255,255,.04);letter-spacing:-.04em}
+.q-card h3{font-size:20px;font-weight:700;margin-bottom:10px;letter-spacing:-.01em}
+.q-card p{font-size:14px;color:var(--text-2);line-height:1.55}
+.q-punch{display:inline-block;padding:14px 22px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.32);border-radius:10px;color:#fca5a5;font-weight:500;font-size:15px}
+
+/* DEMO BANNER */
+.demo-banner{background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(59,130,246,.08));border:1px solid rgba(52,211,153,.28);border-radius:18px;padding:56px 48px;text-align:center;position:relative;overflow:hidden}
+.demo-banner::before{content:"";position:absolute;top:-50%;left:-30%;width:80%;height:200%;background:radial-gradient(circle,rgba(52,211,153,.15),transparent 60%);pointer-events:none}
+.demo-banner h2{margin:0 auto 14px;font-size:38px}
+.demo-banner p{font-size:17px;color:var(--text-2);max-width:620px;margin:0 auto 28px}
+.demo-banner .meta{font-size:13px;color:var(--text-3);margin-top:16px}
+
+/* FEATURES */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feature{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;transition:transform .2s,border .2s}
+.feature:hover{transform:translateY(-2px);border-color:var(--border-2)}
+.feature-ic{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:20px}
+.feature-ic.blue{background:rgba(96,165,250,.12);color:var(--blue)}
+.feature-ic.green{background:rgba(52,211,153,.12);color:var(--green)}
+.feature-ic.purple{background:rgba(167,139,250,.12);color:var(--accent)}
+.feature h3{font-size:20px;font-weight:700;margin-bottom:12px;letter-spacing:-.01em}
+.feature p{font-size:14.5px;color:var(--text-2);line-height:1.6}
+
+/* COMPARE */
+.compare-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--panel)}
+table.compare{width:100%;border-collapse:collapse;font-size:14px;min-width:720px}
+table.compare th,table.compare td{padding:16px 18px;text-align:left;border-bottom:1px solid var(--border)}
+table.compare thead th{background:rgba(255,255,255,.02);font-weight:600;color:var(--text-2);font-size:13px}
+table.compare tbody th{font-weight:600;color:var(--text-2);font-size:13px}
+table.compare td{color:var(--text-2)}
+table.compare th.hl,table.compare td.hl{background:rgba(96,165,250,.07);color:var(--text);font-weight:600;border-left:1px solid rgba(96,165,250,.24);border-right:1px solid rgba(96,165,250,.24)}
+table.compare tr:last-child th,table.compare tr:last-child td{border-bottom:none}
+table.compare tr:last-child td.hl,table.compare tr:last-child th.hl{border-bottom:1px solid rgba(96,165,250,.24)}
+.yes{color:var(--green)}
+.no{color:var(--red)}
+
+/* CASES */
+.cases-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.case{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;position:relative}
+.case-badge{display:inline-block;font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
+.case h3{font-size:22px;font-weight:700;margin-bottom:8px;letter-spacing:-.015em}
+.case-q{color:var(--blue);font-size:15px;font-style:italic;margin-bottom:18px}
+.case ul{list-style:none;margin-bottom:20px}
+.case li{padding:8px 0 8px 20px;position:relative;color:var(--text-2);font-size:14.5px;line-height:1.5}
+.case li::before{content:"→";position:absolute;left:0;color:var(--blue);font-weight:700}
+.case .result{background:rgba(52,211,153,.08);border-left:3px solid var(--green);padding:12px 16px;border-radius:6px;font-size:14px;color:#bef0d9;margin-bottom:16px}
+.case .stack{font-size:12px;color:var(--text-3);font-family:monospace;padding-top:14px;border-top:1px solid var(--border)}
+
+/* PROCESS */
+.timeline{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;counter-reset:t}
+.timeline li{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:24px;position:relative}
+.timeline .day{font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.timeline .step{font-size:16px;font-weight:600;margin-bottom:8px}
+.timeline .desc{font-size:13.5px;color:var(--text-2);line-height:1.55}
+
+/* ABOUT */
+.about{background:linear-gradient(135deg,rgba(167,139,250,.06),rgba(96,165,250,.04));border:1px solid var(--border);border-radius:18px;padding:48px}
+.about-grid{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:start}
+.avatar{width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:800;color:#fff}
+.about h3{font-size:22px;font-weight:700;margin-bottom:8px}
+.about .role{color:var(--text-3);font-size:14px;margin-bottom:16px}
+.about p{color:var(--text-2);font-size:16px;line-height:1.65;margin-bottom:12px}
+.about .biz{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.about .biz span{padding:5px 12px;border:1px solid var(--border-2);border-radius:999px;font-size:13px;color:var(--text-2);background:var(--panel)}
+
+/* PRICING */
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:28px}
+.tier{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;position:relative;display:flex;flex-direction:column}
+.tier.popular{border:1px solid rgba(96,165,250,.5);background:linear-gradient(180deg,rgba(96,165,250,.06),var(--panel))}
+.popular-tag{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#3b82f6,#60a5fa);color:#fff;font-size:11px;font-weight:700;padding:4px 14px;border-radius:999px;letter-spacing:.04em;text-transform:uppercase}
+.tier h3{font-size:18px;font-weight:600;margin-bottom:6px;color:var(--text-2)}
+.tier .price{font-size:36px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
+.tier .meta{font-size:13px;color:var(--text-3);margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid var(--border)}
+.tier ul{list-style:none;margin-bottom:24px;flex-grow:1}
+.tier li{padding:7px 0 7px 22px;position:relative;font-size:14px;color:var(--text-2);line-height:1.5}
+.tier li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:700}
+.pricing-note{text-align:center;color:var(--text-3);font-size:14px}
+.pricing-note b{color:var(--text-2)}
+
+/* FAQ */
+.faq-list{display:grid;grid-template-columns:1fr;gap:10px;max-width:800px}
+details.faq-item{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:0;overflow:hidden;transition:background .2s}
+details.faq-item[open]{background:var(--panel-2)}
+details.faq-item summary{padding:18px 24px;cursor:pointer;list-style:none;font-weight:500;font-size:16px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+details.faq-item summary::-webkit-details-marker{display:none}
+details.faq-item summary::after{content:"+";font-size:24px;color:var(--text-3);font-weight:300;transition:transform .2s;flex-shrink:0}
+details.faq-item[open] summary::after{content:"−"}
+details.faq-item .answer{padding:0 24px 22px;color:var(--text-2);font-size:14.5px;line-height:1.65}
+
+/* ANTI-ICP */
+.anti{background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.2);border-radius:var(--radius);padding:36px 32px}
+.anti h3{color:#fca5a5;margin-bottom:16px;font-size:18px;font-weight:600}
+.anti ul{list-style:none}
+.anti li{padding:8px 0 8px 26px;position:relative;color:var(--text-2);font-size:14.5px}
+.anti li::before{content:"×";position:absolute;left:0;top:8px;color:var(--red);font-weight:700;font-size:16px;line-height:1.2}
+
+/* FINAL CTA */
+.final{text-align:center;padding:80px 40px;background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(167,139,250,.06));border:1px solid var(--border-2);border-radius:20px}
+.final h2{margin:0 auto 18px;font-size:42px}
+.final p{font-size:17px;color:var(--text-2);max-width:540px;margin:0 auto 32px}
+.final .hint{font-size:13px;color:var(--text-3);margin-top:20px}
+
+/* FOOTER */
+footer{padding:40px 0 60px;text-align:center;color:var(--text-3);font-size:13px;border-top:1px solid var(--border);margin-top:40px}
+footer a{color:var(--text-2)}
+
+/* RESPONSIVE */
+@media (max-width:860px){
+  section{padding:64px 0}
+  h2{font-size:30px}
+  h2.big{font-size:34px}
+  .hero h1{font-size:38px}
+  .hero-sub{font-size:17px}
+  .q-grid,.features-grid,.tiers,.timeline,.cases-grid{grid-template-columns:1fr}
+  .dashmock{grid-template-columns:1fr 1fr;padding:16px;gap:10px}
+  .dashmock .wide{grid-column:span 2}
+  .about-grid{grid-template-columns:1fr;text-align:center}
+  .avatar{margin:0 auto}
+  .about{padding:32px 24px}
+  .demo-banner{padding:40px 24px}
+  .demo-banner h2{font-size:28px}
+  .final{padding:56px 24px}
+  .final h2{font-size:30px}
+  .nav-cta a.link{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="logo">Утренний P&amp;L<span class="dot">.</span><span class="by">by Василий Гаврилов</span></div>
+    <div class="nav-cta">
+      <a href="#cases" class="link">Кейсы</a>
+      <a href="#pricing" class="link">Цены</a>
+      <a href="https://t.me/vslgvrlv" class="btn btn-secondary" style="padding:10px 18px;font-size:14px">Написать →</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- 1. HERO -->
+<section class="hero">
+  <div class="hero-tag"><span class="pulse"></span>CEO-дашборды для сервисного и агентского бизнеса</div>
+  <h1>Дашборд, на котором видно, <span>какое решение принять завтра утром</span></h1>
+  <p class="hero-sub">Живой P&amp;L, когортный маркетинг, моделирование «что если». За 2 недели, на твоих данных из Битрикс24 / amoCRM. Строит действующий CEO, а не аналитик-фрилансер.</p>
+  <div class="hero-cta">
+    <a href="demo.html" class="btn btn-primary btn-big">Открыть живое демо →</a>
+    <a href="https://t.me/vslgvrlv" class="btn btn-secondary btn-big">Написать в Telegram</a>
+  </div>
+
+  <!-- DASHBOARD MOCK -->
+  <div class="hero-mock">
+    <div class="hero-mock-head">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="mock-url">utrenniy-pl.ru / dashboard / сейчас</div>
+    </div>
+    <div class="dashmock">
+      <div class="dm-card">
+        <div class="dm-label">Комиссия за месяц · факт</div>
+        <div class="dm-value">1 284 000 ₽</div>
+        <div class="dm-delta">+18% к прошлому месяцу</div>
+        <div class="dm-bar"><i style="width:62%"></i></div>
+        <div class="dm-label" style="margin-top:10px;font-size:10px">62% от pipeline · 2 070 000 ₽</div>
+      </div>
+      <div class="dm-card">
+        <div class="dm-label">Маржа</div>
+        <div class="dm-value">15.3%</div>
+        <div class="dm-delta">+2.1 pp</div>
+      </div>
+      <div class="dm-card">
+        <div class="dm-label">ROMI</div>
+        <div class="dm-value">190%</div>
+        <div class="dm-delta red">−15% у Ильи</div>
+      </div>
+      <div class="dm-card wide">
+        <div class="dm-wide-head">
+          <div>
+            <div class="dm-wide-title">P&amp;L waterfall · Pipeline vs Факт</div>
+            <div class="dm-wide-sub">Когорта лидов за март 2026 · drill-down по клику</div>
+          </div>
+          <div class="dm-wide-sub">Разделено везде</div>
+        </div>
+        <div class="dm-bars">
+          <div style="height:85%"></div>
+          <div style="height:62%"></div>
+          <div style="height:48%"></div>
+          <div style="height:72%"></div>
+          <div style="height:38%"></div>
+          <div style="height:58%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. 3 ВОПРОСА -->
+<section class="questions" id="questions">
+  <div class="eyebrow">Почему большинство дашбордов бесполезны</div>
+  <h2>Каждую неделю ты задаёшь себе одни и те же вопросы</h2>
+  <p class="lede">А ни один инструмент в твоём стеке на них не отвечает. Потому что они построены показывать данные, а не помогать принимать решения.</p>
+
+  <div class="q-grid">
+    <div class="q-card" data-n="01">
+      <h3>Где реально теряю маржу?</h3>
+      <p>Pipeline в CRM показывает 20M, на счету 3M. Разницу никто не объясняет. Excel на 14 вкладок умирает в момент открытия.</p>
+    </div>
+    <div class="q-card" data-n="02">
+      <h3>Какой канал в плюсе, а не в лидах?</h3>
+      <p>Маркетолог отчитывается в CPL, а прибыль не растёт. Некогортная атрибуция прячет провалы за «длинным циклом».</p>
+    </div>
+    <div class="q-card" data-n="03">
+      <h3>Что будет, если…?</h3>
+      <p>Нанять ещё менеджера. Поднять цены на 10%. Закрыть убыточный канал. Хочется увидеть эффект до того, как потратил деньги.</p>
+    </div>
+  </div>
+
+  <div class="q-punch">Если узнал себя хотя бы в одном — читай дальше.</div>
+</section>
+
+<!-- 3. DEMO -->
+<section id="demo">
+  <div class="demo-banner">
+    <div class="eyebrow" style="color:var(--green)">Не обещания — инструмент</div>
+    <h2>Самый честный способ понять — потрогать самому</h2>
+    <p>Я собрал полноценный живой дашборд на вымышленной компании «Демо Детейлинг». Все кнопки, drill-down, моделирование «что если» — работают. 2 минуты кликов — и ты поймёшь, что получишь у себя.</p>
+    <a href="demo.html" class="btn btn-primary btn-big">Войти в демо →</a>
+    <div class="meta">🎭 Демо-режим · данные вымышленные · без регистрации</div>
+  </div>
+</section>
+
+<!-- 4. FEATURES -->
+<section>
+  <div class="eyebrow">Что внутри</div>
+  <h2>Три вещи, которых нет ни в Power BI, ни в Roistat, ни в Excel</h2>
+
+  <div class="features-grid">
+    <div class="feature">
+      <div class="feature-ic blue">◼</div>
+      <h3>Pipeline vs Факт везде</h3>
+      <p>Реальные деньги и прогноз разделены по каждой метрике и строке. Больше не путаешь «прогноз 20M» с «на счету 3M». Видишь разрыв и его причины.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ic green">◈</div>
+      <h3>Моделирование «что если»</h3>
+      <p>Карточки решений: +менеджер, +канал, ↑наценка. Смотришь, как меняется P&amp;L и кассовый разрыв. Решения на цифрах, а не на ощущениях.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ic purple">◆</div>
+      <h3>Drill-down до сделки</h3>
+      <p>Любая цифра → клик → список сделок со ссылками в Битрикс. Каждая метрика прослеживается до первичных данных. Никаких чёрных ящиков.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ic blue">◎</div>
+      <h3>Когортная атрибуция</h3>
+      <p>Результаты маркетинга — по дате ЛИДА, не сделки. Стандарт GA4 / Amplitude. CPL, CPQL, CPO, ROMI — честные, с учётом длинного цикла.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ic green">▲</div>
+      <h3>Светофор оперативных метрик</h3>
+      <p>🟢🟡🔴 по ключевым KPI. Утром с кофе за 15 секунд понимаешь, где канал ушёл в минус — и звонишь маркетологу до 11:00, а не через неделю.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ic purple">▢</div>
+      <h3>Workbench-конструктор</h3>
+      <p>CEO сам собирает новые виджеты: метрика × разрез × тип графика. Без обращения к разработчику. Исследуешь данные под любым углом.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5. COMPARE -->
+<section>
+  <div class="eyebrow">Чем я отличаюсь</div>
+  <h2>От того, что ты уже пробовал или думал попробовать</h2>
+
+  <div class="compare-wrap">
+  <table class="compare">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Power BI / Tableau</th>
+        <th>Roistat</th>
+        <th>Фрилансер-аналитик</th>
+        <th>Excel / Sheets</th>
+        <th class="hl">Утренний P&amp;L</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><th>Нужен аналитик в штате</th><td>Да</td><td>Нет</td><td>Нет</td><td>Нужен помощник</td><td class="hl yes">Не нужен</td></tr>
+      <tr><th>Моделирование «что если»</th><td class="no">Нет</td><td class="no">Нет</td><td>Как закажешь</td><td>Вручную</td><td class="hl yes">Из коробки</td></tr>
+      <tr><th>Когортная атрибуция</th><td>Если сам настроишь</td><td>Базово</td><td>Как закажешь</td><td class="no">Нет</td><td class="hl yes">Из коробки</td></tr>
+      <tr><th>Pipeline vs Факт разделение</th><td class="no">Нет</td><td class="no">Нет</td><td>Как закажешь</td><td class="no">Нет</td><td class="hl yes">На каждой метрике</td></tr>
+      <tr><th>Строит действующий CEO</th><td class="no">Нет</td><td class="no">Нет</td><td class="no">Нет</td><td class="no">Нет</td><td class="hl yes">Да</td></tr>
+      <tr><th>Срок до работающей версии</th><td>2–6 мес</td><td>1–2 мес</td><td>1–3 мес</td><td>Бесконечно</td><td class="hl">2 недели</td></tr>
+      <tr><th>Vendor lock-in</th><td>Да</td><td>Да</td><td>Человеческий</td><td>Нет</td><td class="hl yes">Нет · исходники у тебя</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- 6. CASES -->
+<section id="cases">
+  <div class="eyebrow">Кейсы</div>
+  <h2>Два живых дашборда, которые работают прямо сейчас</h2>
+  <p class="lede">Оба — мои бизнесы. Каждое утро я сам их открываю и принимаю по ним решения.</p>
+
+  <div class="cases-grid">
+    <div class="case">
+      <div class="case-badge">Eclipse Auto · агентство оклейки авто</div>
+      <h3>Финансовый контур CEO</h3>
+      <p class="case-q">«Как перестать путать pipeline с реальными деньгами?»</p>
+      <ul>
+        <li>Три страницы: Сейчас · Что если · Дорожная карта на 12 месяцев</li>
+        <li>PNL / ДДС переключатель — когорта лидов против реально закрытых</li>
+        <li>Drill-down по каждой строке P&amp;L — список сделок со ссылками в Битрикс</li>
+        <li>Редактирование ФОТ (фикс / CPL-шкала) и расходов прямо в дашборде</li>
+      </ul>
+      <div class="result">Увидели реальную маржу 15.3% вместо 18% оптимизма пайплайна. Перестали принимать решения о найме по кассовому разрыву вслепую.</div>
+      <div class="stack">Битрикс24 · Яндекс Директ · Python · FastAPI · SQLite · Chart.js</div>
+    </div>
+
+    <div class="case">
+      <div class="case-badge">РНП «Защита Плёнкой» · маркетинг</div>
+      <h3>Маркетинговый дашборд</h3>
+      <p class="case-q">«Как отличить эффективного маркетолога от случайно удачного месяца?»</p>
+      <ul>
+        <li>Когортная атрибуция: JOIN lead ↔ deal через contact_id — результат по дате ЛИДА</li>
+        <li>Светофор «Вчера · Сегодня · Эта неделя» — 🟢🟡🔴 по CPL</li>
+        <li>Сравнение маркетологов горизонтально: CPL, CPQL, CPO, ROMI, Pipeline / Факт</li>
+        <li>Воронка с подсветкой bottleneck + универсальный блок «Исследование метрик»</li>
+      </ul>
+      <div class="result">Увидели ROMI −15% у одного из маркетологов при красивом CPL — бюджет перераспределили в ту же неделю. Разница со стандартным «отчётом по месяцу» — 3 недели потерь.</div>
+      <div class="stack">Битрикс24 · Яндекс Директ · UTM-атрибуция · Litepicker · когортный SQL</div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. PROCESS -->
+<section>
+  <div class="eyebrow">Как устроена работа</div>
+  <h2>От первого звонка до рабочего дашборда — 14 дней</h2>
+  <p class="lede">Не «разработка под ТЗ», а со-дизайн с CEO. Я задаю вопросы, ты отвечаешь, решаем какие метрики нужны — потом строю. Без недель согласований.</p>
+
+  <ol class="timeline">
+    <li>
+      <div class="day">День 1</div>
+      <div class="step">Kick-off созвон</div>
+      <div class="desc">Формулируем вопросы CEO и метрики. Я не беру задачу, пока не пойму, какие решения ты будешь принимать по дашборду.</div>
+    </li>
+    <li>
+      <div class="day">Дни 2–3</div>
+      <div class="step">Доступы и аудит</div>
+      <div class="desc">Подключаю CRM, рекламные кабинеты. Нахожу первые дыры: поля без UTM, стадии без маппинга, разрывы в данных.</div>
+    </li>
+    <li>
+      <div class="day">Дни 4–7</div>
+      <div class="step">ETL + первая версия</div>
+      <div class="desc">Строю автосинк из источников каждые 30 минут. Первая рабочая версия дашборда на демо-данных к концу недели.</div>
+    </li>
+    <li>
+      <div class="day">Дни 8–10</div>
+      <div class="step">Твои реальные данные</div>
+      <div class="desc">Подключаю твой контур, сверяю цифры с CRM и кассой. Ловим расхождения, калибруем маппинг стадий и UTM-правила.</div>
+    </li>
+    <li>
+      <div class="day">Дни 11–13</div>
+      <div class="step">Фидбек и правки</div>
+      <div class="desc">Ты неделю пользуешься дашбордом. Записываешь, что не читается, чего не хватает. Я допиливаю.</div>
+    </li>
+    <li>
+      <div class="day">День 14</div>
+      <div class="step">Handover</div>
+      <div class="desc">Документация, доступы, инструкция по передаче проекта любому Python-разработчику. Исходники у тебя. Никакого vendor lock-in.</div>
+    </li>
+  </ol>
+</section>
+
+<!-- 8. ABOUT -->
+<section>
+  <div class="about">
+    <div class="about-grid">
+      <div class="avatar">ВГ</div>
+      <div>
+        <h3>Василий Гаврилов</h3>
+        <div class="role">CEO · основатель нескольких бизнесов · строит дашборды себе 3 года</div>
+        <p>Я не агентство и не фрилансер. Я действующий CEO — и эти дашборды изначально были моими рабочими инструментами, а не заказом. Каждое утро я открываю их в своих трёх компаниях и принимаю решения по тому, что вижу.</p>
+        <p>Если ты тоже устал управлять по ощущениям и в 23:00 открывать Excel, чтобы понять «заработали ли в этом месяце» — давай соберём тебе такой же инструмент.</p>
+        <div class="biz">
+          <span>Eclipse Auto</span>
+          <span>Paintball TeamHub</span>
+          <span>WeShow</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. PRICING -->
+<section id="pricing">
+  <div class="eyebrow">Сколько это стоит</div>
+  <h2>Три формата — от пилота до управленческой платформы</h2>
+  <p class="lede">Фиксированные цены. Оплата этапами 50% старт · 30% MVP · 20% handover. Все исходники и данные остаются у тебя.</p>
+
+  <div class="tiers">
+    <div class="tier">
+      <h3>Пилот</h3>
+      <div class="price">450 000 ₽</div>
+      <div class="meta">2 недели · 1 дашборд</div>
+      <ul>
+        <li>Один дашборд на выбор — P&amp;L или маркетинговая воронка</li>
+        <li>Интеграция с 1–2 источниками данных</li>
+        <li>До 15 ключевых метрик и 1 уровень drill-down</li>
+        <li>Pipeline vs Факт разделение</li>
+        <li>Handover и 1 месяц поддержки</li>
+      </ul>
+      <a href="https://t.me/vslgvrlv?text=Интересует%20Пилот" class="btn btn-secondary" style="justify-content:center">Обсудить пилот</a>
+    </div>
+
+    <div class="tier popular">
+      <div class="popular-tag">Чаще берут</div>
+      <h3>Аналитический контур</h3>
+      <div class="price">1 200 000 ₽</div>
+      <div class="meta">6 недель · P&amp;L + маркетинг</div>
+      <ul>
+        <li>Связанные дашборды — P&amp;L, маркетинг, операционка</li>
+        <li>Интеграция с 3–5 источниками (CRM + рекламные кабинеты + учёт)</li>
+        <li>Когортная атрибуция с UTM-правилами под твой бизнес</li>
+        <li>Моделирование «что если» и расчёт сценариев</li>
+        <li>Workbench-конструктор для самостоятельной сборки виджетов</li>
+        <li>3 месяца поддержки и обучение команды</li>
+      </ul>
+      <a href="https://t.me/vslgvrlv?text=Интересует%20Аналитический%20контур" class="btn btn-primary" style="justify-content:center">Обсудить контур</a>
+    </div>
+
+    <div class="tier">
+      <h3>Управленческая платформа</h3>
+      <div class="price">от 2 500 000 ₽</div>
+      <div class="meta">10–12 недель · полный контур</div>
+      <ul>
+        <li>P&amp;L + маркетинг + продажи + операционка с ролями и правами</li>
+        <li>Кастомные модели «что если» под специфику бизнеса</li>
+        <li>Алерты в Telegram / почту, экспорты для планёрок</li>
+        <li>Интеграция с любыми источниками через REST / SQL</li>
+        <li>6 месяцев сопровождения с SLA</li>
+      </ul>
+      <a href="https://t.me/vslgvrlv?text=Интересует%20Управленческая%20платформа" class="btn btn-secondary" style="justify-content:center">Обсудить платформу</a>
+    </div>
+  </div>
+
+  <p class="pricing-note">Подписка на поддержку и развитие после проекта — <b>от 60 000 ₽/мес</b>. Включает хостинг, 1 новую метрику в месяц, починку ETL при изменениях в API источников.</p>
+</section>
+
+<!-- 10. FAQ -->
+<section>
+  <div class="eyebrow">Вопросы и ответы</div>
+  <h2>То, что обычно спрашивают на первом звонке</h2>
+
+  <div class="faq-list">
+    <details class="faq-item">
+      <summary>У меня уже есть Power BI / Tableau. Зачем ещё один инструмент?</summary>
+      <div class="answer">Отличный вопрос. А кто в нём сейчас реально работает? По моему опыту, в 90% случаев лицензии куплены, но дашбордами пользуется один аналитик, а CEO смотрит в Excel. Я не заменяю Power BI — я делаю то, что поверх него твоя команда не тянет: когортную атрибуцию, Pipeline vs Факт, моделирование «что если». Покажу на твоих данных за 20 минут — решишь сам.</div>
+    </details>
+    <details class="faq-item">
+      <summary>У нас не очень с CRM. Сначала нужно навести порядок там?</summary>
+      <div class="answer">Классическая ловушка. Порядок в CRM не наведёшь, пока не видишь, где он не работает. Дашборд сам диагностирует CRM: на первой неделе я нахожу пустые UTM, незаполненные стадии, дубли. Список «что чинить» ты получишь к концу пилота. Дальше решишь — двигаться к полному контуру или сначала наводить порядок в CRM.</div>
+    </details>
+    <details class="faq-item">
+      <summary>А если ты пропадёшь или уйдёшь — что будет с дашбордом?</summary>
+      <div class="answer">Три варианта поддержки на выбор. (а) Я поддерживаю по SLA — от 60 000 ₽/мес. (б) Обучаю вашего разработчика за 2 недели по документации. (в) Передаю исходники и ты поддерживаешь через любого Python-разработчика на Kwork за 3 000 ₽/час. Стек специально выбран дешёвый в поддержке: Python + SQLite + FastAPI + HTML. Никакого vendor lock-in, всё в твоём репозитории.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Почему не нанять фрилансера? Он сделает за 200к.</summary>
+      <div class="answer">Правда, сделает. У меня есть три вещи, которых у фрилансера нет. Первое: я действующий CEO, 3 года сам принимал решения на таких дашбордах — я спорю с тобой о том, какие метрики правильные, а не просто выполняю ТЗ. Второе: у меня playbook за 2 недели и типовая схема — фрилансер учится на тебе 2 месяца. Третье: я не пропадаю через полгода. Но если у тебя задача «сделать один отчёт» — бери фрилансера, честно.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Это дорого. Как посчитать окупаемость?</summary>
+      <div class="answer">По моему опыту, дашборд вскрывает 10–20% неэффективного расхода. При маркетинговом бюджете 500к/мес это 50–100к экономии в месяц. Пилот за 450к окупается за 4–9 месяцев. На P&amp;L-дашборде Eclipse Auto я нашёл у себя 18% бюджета в канале с отрицательным ROMI — при нашем обороте это 2.4M потерь в год, которые теперь не случаются.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Я не понимаю, что такое «когортная атрибуция». Объясни.</summary>
+      <div class="answer">Покажу на твоём примере. Сколько клиентов закрыли в марте? Допустим, 30. А сколько из этих 30 пришли от рекламы, запущенной в марте? Скорее всего, не все — часть это лиды января-февраля, которые дозрели. Если смотришь «расход марта / выручка марта» — меряешь не ту рекламу. Когорта говорит: «реклама января принесла столько денег в феврале, столько в марте, столько в апреле». Стандарт в GA4, Amplitude, Mixpanel — и единственный способ честно оценить маркетинг.</div>
+    </details>
+    <details class="faq-item">
+      <summary>У нас amoCRM, самописка, Google Sheets — подойдёт?</summary>
+      <div class="answer">Битрикс24 и amoCRM — рабочие из коробки. Самописки и SaaS — через REST API или прямой SQL. Google Sheets — через API. Уточним на 30-минутном разборе — я посмотрю, что у тебя, и скажу честно, подходит или надо сначала что-то перестроить.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Где будут храниться мои данные?</summary>
+      <div class="answer">На VPS, который ты оплачиваешь (Selectel / Timeweb / твой любой). Я разворачиваю там ETL и базу SQLite / Postgres — доступ только у тебя и у меня на время проекта. После handover можешь отозвать мой SSH-ключ. Данные никуда за пределы твоего контура не уходят.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Можно сделать дашборд, но без подписки на поддержку?</summary>
+      <div class="answer">Можно. Но стоит учитывать: рекламные кабинеты раз в полгода меняют API, CRM добавляют/удаляют поля. Без минимальной поддержки (60к/мес) через 4–6 месяцев что-то сломается. Ты можешь подключить подписку позже, когда поймёшь, сколько это даёт.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Как начать?</summary>
+      <div class="answer">Напиши мне в Telegram — <a href="https://t.me/vslgvrlv" style="color:var(--blue);text-decoration:underline">@vslgvrlv</a>. Договоримся на 30 минут по видеосвязи, ты шеришь экран с твоими CRM и рекламным кабинетом, я показываю, какие 3 решения ты мог бы принимать по дашборду уже сейчас. Бесплатно, без презентации — если не зайдёт, разойдёмся без обид.</div>
+    </details>
+  </div>
+</section>
+
+<!-- ANTI-ICP -->
+<section>
+  <div class="anti">
+    <h3>Кому я, скорее всего, не подойду</h3>
+    <ul>
+      <li>Если оборот компании меньше 30M ₽/год — проект не окупится, посмотри в сторону готовых BI-коробок</li>
+      <li>Если у тебя нет ни CRM, ни регулярного учёта — сначала внедри их</li>
+      <li>Если нужно «нарисовать красиво для совета директоров» — это работа для дизайнера, не для меня</li>
+      <li>Если ты ищешь разработчика под чёткое ТЗ, а не продуктового партнёра — на Kwork это будет втрое дешевле</li>
+      <li>Если госзаказ, ФЗ-44, тендеры — не моё</li>
+    </ul>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section>
+  <div class="final">
+    <div class="eyebrow" style="color:var(--green)">30 минут. Бесплатно. Без презентации</div>
+    <h2>Разберём твою аналитику прямо на звонке</h2>
+    <p>Ты шеришь экран с Битрикс / amoCRM и рекламным кабинетом. Я показываю 3 дыры, которые не закрывает твой текущий стек, и делаю мок-дашборд на твоих данных прямо во время звонка.</p>
+    <a href="https://t.me/vslgvrlv" class="btn btn-primary btn-big">Написать в Telegram →</a>
+    <div class="hint">Или открой <a href="demo.html" style="color:var(--blue);text-decoration:underline">живое демо</a> и потрогай сам, прежде чем писать</div>
+  </div>
+</section>
+
+<footer>
+  <div>Утренний P&amp;L · by <a href="https://t.me/vslgvrlv">Василий Гаврилов</a> · 2026</div>
+  <div style="margin-top:8px;font-size:11px">Python · FastAPI · SQLite · Chart.js · Litepicker — простой стек без vendor lock-in</div>
+</footer>
+
+</div>
+</body>
+</html>

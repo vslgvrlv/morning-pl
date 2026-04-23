@@ -1,0 +1,2927 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Демо · Утренний P&L — конструктор дашборда</title>
+<!-- Litepicker: range date picker (same as in RNP dashboard) -->
+<script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/litepicker/dist/plugins/ranges.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   RNP DESIGN BUNDLE (embedded from index.html)
+   ═══════════════════════════════════════════════════════════════════ */
+@font-face {
+  font-family: 'Monaco';
+  src: url('./Monaco.otf') format('opentype');
+  font-weight: normal; font-style: normal; font-display: swap;
+}
+
+:root {
+  --rnp-bg: #080c12;
+  --rnp-surface: #0f1720;
+  --rnp-surface-2: #151f2b;
+  --rnp-surface-3: rgba(255,255,255,.025);
+  --rnp-border: #1e2d3d;
+  --rnp-text: #e8f0ff;
+  --rnp-text-muted: #8aa0bc;
+  --rnp-primary: #3b7ef5;
+  --rnp-primary-2: #2560cc;
+  --rnp-blue: #60a5fa;
+  --rnp-blue-2: #93c5fd;
+  --rnp-green: #4ade80;
+  --rnp-violet: #a78bfa;
+  --rnp-yellow: #fbbf24;
+  --rnp-red: #f87171;
+  --rnp-radius-sm: 10px;
+  --rnp-radius-md: 12px;
+  --rnp-radius-lg: 14px;
+  --rnp-shadow: 0 12px 28px rgba(0,0,0,.32);
+  --rnp-shadow-hover: 0 22px 48px rgba(0,0,0,.44);
+  --rnp-font: 'Monaco', 'Menlo', 'Courier New', monospace;
+  --rnp-container: 1500px;
+  --rnp-gap-sm: 10px;
+  --rnp-gap-md: 12px;
+  --rnp-ease: cubic-bezier(.4,0,.2,1);
+  --rnp-transition: 200ms cubic-bezier(.4,0,.2,1);
+  --rnp-glass-blur: 20px;
+  --rnp-glow-primary: rgba(59,126,245,.4);
+  --rnp-panel-fill: linear-gradient(160deg, rgba(255,255,255,.055) 0%, rgba(255,255,255,.018) 100%);
+  --rnp-panel-border-grad: linear-gradient(145deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.04) 50%, rgba(167,139,250,.1) 100%);
+  --rnp-panel-fill-hover: linear-gradient(160deg, rgba(255,255,255,.075) 0%, rgba(255,255,255,.025) 100%);
+  --rnp-panel-border-hover: linear-gradient(145deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,.06) 50%, rgba(167,139,250,.2) 100%);
+}
+
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; background:var(--rnp-bg); color:var(--rnp-text); font-family:var(--rnp-font); }
+body { position:relative; min-height:100vh; overflow-x:hidden; }
+
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 900px 700px at 15% 15%, rgba(47,110,229,.28) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 600px at 88% 85%, rgba(167,139,250,.22) 0%, transparent 70%),
+    radial-gradient(ellipse 600px 500px at 60% 40%, rgba(96,165,250,.14) 0%, transparent 70%);
+  animation: rnp-bg-breathe 20s ease-in-out infinite alternate;
+}
+@keyframes rnp-bg-breathe {
+  0%   { opacity:.8; transform:scale(1) translate(0,0); }
+  50%  { opacity:1; }
+  100% { opacity:.9; transform:scale(1.07) translate(1.5%,1%); }
+}
+
+.rnp-app { position:relative; z-index:1; max-width:var(--rnp-container); margin:0 auto; padding:16px; }
+
+/* Panel */
+.rnp-panel {
+  position:relative; overflow:hidden;
+  border:1px solid transparent;
+  background: var(--rnp-panel-fill) padding-box, var(--rnp-panel-border-grad) border-box;
+  border-radius:var(--rnp-radius-lg);
+  box-shadow: var(--rnp-shadow), inset 0 1px 0 rgba(255,255,255,.08);
+  backdrop-filter:blur(var(--rnp-glass-blur)) saturate(140%);
+  transition: background var(--rnp-transition), box-shadow var(--rnp-transition), transform var(--rnp-transition);
+  animation: rnp-fade-up .45s var(--rnp-ease) both;
+}
+
+@keyframes rnp-fade-up {
+  from { opacity:0; transform:translateY(10px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+/* Form controls */
+.rnp-select, .rnp-input {
+  height:32px; padding:0 8px;
+  border-radius:var(--rnp-radius-sm);
+  font-size:12px; font-family:var(--rnp-font);
+  border:1px solid var(--rnp-border);
+  background:var(--rnp-surface-2); color:var(--rnp-text);
+  outline:none; transition:border-color var(--rnp-transition);
+}
+.rnp-select:focus, .rnp-input:focus { border-color:var(--rnp-primary); }
+
+.rnp-button {
+  height:32px; padding:0 12px; border:none; cursor:pointer;
+  font-family:var(--rnp-font); font-size:12px;
+  border-radius:var(--rnp-radius-sm);
+  background:linear-gradient(160deg, var(--rnp-primary), var(--rnp-primary-2));
+  color:var(--rnp-text); transition:transform 150ms var(--rnp-ease), filter 150ms var(--rnp-ease);
+}
+.rnp-button:hover { transform:translateY(-1px); filter:brightness(1.12); }
+.rnp-button-secondary { border:1px solid var(--rnp-border); background:var(--rnp-surface-2); color:var(--rnp-text); }
+.rnp-button-secondary:hover { border-color:rgba(255,255,255,.14); }
+
+/* Segmented control */
+.rnp-segmented {
+  display:inline-flex; gap:3px; padding:3px;
+  border:1px solid var(--rnp-border); border-radius:var(--rnp-radius-sm); background:var(--rnp-surface-2);
+}
+.rnp-segmented button {
+  height:28px; padding:0 10px; border:none; border-radius:8px;
+  background:transparent; color:var(--rnp-text); cursor:pointer;
+  font-family:var(--rnp-font); font-size:11px; transition:background var(--rnp-transition);
+}
+.rnp-segmented button:hover:not(.is-active) { background:rgba(255,255,255,.06); }
+.rnp-segmented button.is-active { background:rgba(59,126,245,.2); color:var(--rnp-blue-2); }
+
+/* Table */
+.rnp-table { width:100%; border-collapse:collapse; font-size:12px; }
+.rnp-table th, .rnp-table td { padding:6px 8px; border-bottom:1px solid rgba(255,255,255,.04); text-align:right; white-space:nowrap; }
+.rnp-table th:first-child, .rnp-table td:first-child { text-align:left; }
+.rnp-table th { position:sticky; top:0; background:var(--rnp-surface); color:var(--rnp-text-muted); font-size:10px; letter-spacing:.05em; text-transform:uppercase; }
+.rnp-table tbody tr:hover { background:rgba(59,126,245,.05); }
+
+/* P&L / compare / unit-econ shared table */
+.wb-pnl-table, .wb-mcomp-table, .wb-ue-table {
+  width:100%; border-collapse:collapse; font-size:12px;
+}
+.wb-pnl-table th, .wb-pnl-table td,
+.wb-mcomp-table th, .wb-mcomp-table td,
+.wb-ue-table th, .wb-ue-table td {
+  padding:7px 10px; text-align:right; white-space:nowrap;
+  border-bottom:1px solid rgba(255,255,255,.04);
+}
+.wb-pnl-table th, .wb-mcomp-table th, .wb-ue-table th {
+  position:sticky; top:0; z-index:2;
+  background:var(--rnp-surface);
+  color:var(--rnp-text-muted); font-size:10px; letter-spacing:.05em; text-transform:uppercase;
+  font-weight:normal;
+}
+.wb-pnl-table .wb-pnl-label,
+.wb-mcomp-table .wb-pnl-label,
+.wb-ue-table td:first-child { text-align:left; }
+.wb-pnl-table .wb-pnl-val,
+.wb-mcomp-table .wb-pnl-val { font-variant-numeric:tabular-nums; }
+.wb-pnl-table tr.wb-pnl-section td {
+  padding-top:12px; padding-bottom:4px;
+  color:var(--rnp-text-muted); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+  background:rgba(255,255,255,.02); border-bottom:none;
+}
+.wb-pnl-table tr.wb-pnl-headline td,
+.wb-mcomp-table tr.wb-pnl-headline td {
+  font-weight:600; font-size:13px;
+  background:rgba(59,126,245,.04);
+  border-top:1px solid rgba(255,255,255,.1);
+}
+.wb-pnl-table tr.wb-pnl-final td {
+  font-size:14px;
+  background:rgba(59,126,245,.08);
+  border-top:2px solid rgba(255,255,255,.18);
+}
+.wb-pnl-table tbody tr:hover,
+.wb-mcomp-table tbody tr:hover,
+.wb-ue-table tbody tr:hover { background:rgba(59,126,245,.06); }
+.wb-mcomp-table .wb-leader {
+  color:var(--rnp-yellow); margin-left:4px; font-size:12px;
+}
+
+/* Split-bar fact+pipe inside P&L table */
+.wb-pnl-bar-cell { width:34%; padding:0 10px !important; }
+.wb-pnl-bar-wrap {
+  position:relative; height:16px; min-width:40px;
+}
+.wb-pnl-bar-fact {
+  position:relative; z-index:2; height:100%; border-radius:4px; min-width:2px;
+  transition: width .6s cubic-bezier(.2,.9,.3,1);
+}
+.wb-pnl-bar-pipe {
+  position:absolute; top:0; left:0; height:100%;
+  border-radius:4px; border:1px dashed; opacity:0.55; z-index:1;
+  transition: width .6s cubic-bezier(.2,.9,.3,1);
+}
+.wb-pnl-bar-fact.income  { background: linear-gradient(90deg, var(--rnp-green), #22c55e); }
+.wb-pnl-bar-fact.expense { background: linear-gradient(90deg, var(--rnp-red), #ef4444); }
+.wb-pnl-bar-fact.transit { background: linear-gradient(90deg, #475569, #64748b); }
+.wb-pnl-bar-fact.net-pos { background: linear-gradient(90deg, var(--rnp-green), #22c55e); }
+.wb-pnl-bar-fact.net-neg { background: linear-gradient(90deg, var(--rnp-red), #ef4444); }
+.wb-pnl-bar-pipe.income  { background: rgba(74,222,128,.22);  border-color: var(--rnp-green); }
+.wb-pnl-bar-pipe.expense { background: rgba(248,113,113,.22); border-color: var(--rnp-red); }
+.wb-pnl-bar-pipe.transit { background: rgba(100,116,139,.22); border-color: #64748b; }
+.wb-pnl-bar-pipe.net-pos { background: rgba(74,222,128,.22);  border-color: var(--rnp-green); }
+.wb-pnl-bar-pipe.net-neg { background: rgba(248,113,113,.22); border-color: var(--rnp-red); }
+
+/* Small pipe value next to fact value */
+.wb-pnl-pipe-label {
+  display:block; font-size:10px; color:var(--rnp-text-muted); margin-top:1px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Clickable rows */
+.wb-pnl-table tr.wb-pnl-click { cursor:pointer; transition: background var(--rnp-transition); }
+.wb-pnl-table tr.wb-pnl-click:hover { background: rgba(59,126,245,.08); }
+.wb-pnl-table tr.wb-pnl-click.is-open { background: rgba(59,126,245,.1); }
+
+/* Drill-down row */
+.wb-pnl-drill-row td {
+  padding: 0 !important; border:none !important;
+}
+.wb-pnl-drill-box {
+  max-height: 280px; overflow-y: auto;
+  background: rgba(0,0,0,.25); border-top: 1px solid rgba(59,126,245,.2);
+  animation: rnp-fade-up .2s var(--rnp-ease);
+}
+.wb-pnl-drill-row-item {
+  display:flex; align-items:center; gap:10px;
+  padding: 6px 14px; font-size: 11px;
+  border-bottom: 1px solid rgba(255,255,255,.03);
+}
+.wb-pnl-drill-row-item:last-child { border-bottom: none; }
+.wb-pnl-drill-row-item a { color: var(--rnp-blue); text-decoration: none; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wb-pnl-drill-row-item a:hover { text-decoration: underline; }
+.wb-pnl-drill-row-item .dd-stage { font-size:10px; color:var(--rnp-text-muted); min-width:80px; text-align:right; }
+.wb-pnl-drill-row-item .dd-amt { font-variant-numeric:tabular-nums; white-space:nowrap; min-width:100px; text-align:right; }
+.wb-pnl-drill-row-item.is-won { background: rgba(74,222,128,.04); }
+.wb-pnl-drill-pipe-badge {
+  display:inline-block; padding: 1px 6px; margin-right:6px;
+  background: rgba(248,113,113,.12); color: var(--rnp-red);
+  border-radius: 3px; font-size: 9px; font-weight: 600; text-transform: uppercase;
+}
+.wb-pnl-drill-won-badge {
+  display:inline-block; padding: 1px 6px; margin-right:6px;
+  background: rgba(74,222,128,.12); color: var(--rnp-green);
+  border-radius: 3px; font-size: 9px; font-weight: 600; text-transform: uppercase;
+}
+.wb-pnl-drill-empty { padding: 16px; text-align: center; color: var(--rnp-text-muted); font-size: 11px; }
+.wb-pnl-drill-loading { padding: 12px; text-align: center; color: var(--rnp-text-muted); font-size: 11px; }
+
+/* ─── Period label (shared) ─── */
+.wb-pnl-period-label {
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--rnp-text-muted); margin-bottom: 8px; padding: 0 4px;
+}
+
+/* ─── Mode: Группы (grouped) ─── */
+.wb-pnl-groups { display: flex; flex-direction: column; gap: 14px; }
+.wb-pnl-grp-head {
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--rnp-text-muted); padding: 4px 4px 6px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; gap: 8px;
+}
+.wb-pnl-grp-body { display: flex; flex-direction: column; gap: 2px; padding: 4px 0 0; }
+.wb-pnl-grp-row {
+  display: grid; grid-template-columns: 1.6fr 2fr 48px 1.1fr;
+  align-items: center; gap: 10px; padding: 5px 8px;
+  font-size: 12px; border-radius: 6px;
+  transition: background var(--rnp-transition);
+}
+.wb-pnl-grp-row.wb-pnl-click { cursor: pointer; }
+.wb-pnl-grp-row.wb-pnl-click:hover { background: rgba(59,126,245,.06); }
+.wb-pnl-grp-row.is-open { background: rgba(59,126,245,.09); }
+.wb-pnl-grp-row.wb-pnl-grp-headline {
+  background: rgba(59,126,245,.05);
+  font-weight: 600; font-size: 13px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding: 8px 8px; margin-top: 4px;
+}
+.wb-pnl-grp-row.wb-pnl-grp-final {
+  background: rgba(59,126,245,.1);
+  font-weight: 700; font-size: 14px;
+  border-top: 2px solid rgba(255,255,255,.18);
+  padding: 10px 8px; margin-top: 6px;
+}
+.wb-pnl-grp-label { color: var(--rnp-text); }
+.wb-pnl-grp-headline .wb-pnl-grp-label,
+.wb-pnl-grp-final .wb-pnl-grp-label { color: var(--rnp-text); }
+.wb-pnl-grp-bar { padding: 0; }
+.wb-pnl-grp-val { text-align: right; font-variant-numeric: tabular-nums; }
+.wb-pnl-pct {
+  text-align: right; font-size: 11px; color: var(--rnp-text-muted);
+  font-variant-numeric: tabular-nums; padding: 0 4px;
+}
+
+/* ─── Mode: Водопад (waterfall) ─── */
+.wb-pnl-wf {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 8px; background: rgba(0,0,0,.15); border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.04);
+}
+.wb-pnl-wf-row {
+  display: grid; grid-template-columns: 1.4fr 2.5fr 1fr;
+  align-items: center; gap: 10px; padding: 3px 4px;
+  font-size: 11px;
+}
+.wb-pnl-wf-marker {
+  margin-top: 4px; padding-top: 6px;
+  border-top: 1px dashed rgba(255,255,255,.08);
+  font-weight: 600; font-size: 12px;
+}
+.wb-pnl-wf-final {
+  margin-top: 6px; padding: 6px 4px;
+  border-top: 2px solid rgba(255,255,255,.18);
+  font-weight: 700; font-size: 13px;
+  background: rgba(59,126,245,.06); border-radius: 4px;
+}
+.wb-pnl-wf-label { color: var(--rnp-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-pnl-wf-marker .wb-pnl-wf-label,
+.wb-pnl-wf-final .wb-pnl-wf-label { color: var(--rnp-text); }
+.wb-pnl-wf-bar-wrap {
+  position: relative; height: 14px;
+  background: rgba(255,255,255,.03); border-radius: 4px; overflow: hidden;
+}
+.wb-pnl-wf-bar {
+  height: 100%; border-radius: 4px; min-width: 2px;
+  transition: width .5s cubic-bezier(.2,.9,.3,1);
+}
+.wb-pnl-wf-val { text-align: right; font-variant-numeric: tabular-nums; }
+
+.rnp-empty { padding:24px; text-align:center; color:var(--rnp-text-muted); font-size:12px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   WORKBENCH CSS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Topbar */
+.wb-topbar {
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+  margin-bottom:12px; flex-wrap:wrap;
+}
+.wb-topbar-left { display:flex; align-items:center; gap:12px; }
+.wb-topbar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.wb-title { font-size:18px; font-weight:normal; letter-spacing:-0.01em; }
+.wb-subtitle { font-size:11px; color:var(--rnp-text-muted); }
+
+/* Period bar — navigation + preset select + arrows */
+.wb-period-bar {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--rnp-surface-2); border: 1px solid var(--rnp-border);
+  border-radius: var(--rnp-radius-sm); padding: 2px;
+}
+.wb-pbtn {
+  width: 28px; height: 28px; border: none; border-radius: 6px;
+  background: transparent; color: var(--rnp-text); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: all var(--rnp-transition);
+}
+.wb-pbtn:hover:not(:disabled) { background: rgba(59,126,245,.15); color: var(--rnp-blue-2); }
+.wb-pbtn:disabled { opacity: 0.3; cursor: default; }
+.wb-pselect {
+  height: 28px; padding: 0 8px; border: none; background: transparent;
+  color: var(--rnp-text); font-family: var(--rnp-font); font-size: 12px;
+  cursor: pointer; outline: none; border-radius: 6px;
+}
+.wb-pselect:hover { background: rgba(255,255,255,.04); }
+.wb-pselect:focus { background: rgba(59,126,245,.08); }
+
+.wb-period-label {
+  font-size: 11px; color: var(--rnp-text-muted);
+  letter-spacing: .02em;
+}
+
+/* Custom range popup */
+.wb-custom-range {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 12px; margin-bottom: 12px;
+  background: var(--rnp-surface-2); border: 1px solid var(--rnp-border);
+  border-radius: var(--rnp-radius-md);
+  animation: rnp-fade-up .2s var(--rnp-ease);
+}
+.wb-cr-presets { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.wb-cr-label { font-size: 10px; color: var(--rnp-text-muted); text-transform: uppercase; letter-spacing: .06em; margin-right: 4px; }
+.wb-cr-preset {
+  height: 26px; padding: 0 10px;
+  border: 1px solid var(--rnp-border); border-radius: 6px;
+  background: transparent; color: var(--rnp-text-muted);
+  font-family: var(--rnp-font); font-size: 11px; cursor: pointer;
+  transition: all var(--rnp-transition);
+}
+.wb-cr-preset:hover { color: var(--rnp-text); border-color: var(--rnp-primary); background: rgba(59,126,245,.06); }
+.wb-cr-preset.is-active { color: var(--rnp-blue-2); border-color: var(--rnp-primary); background: rgba(59,126,245,.12); }
+
+.wb-cr-picker-wrap { display: flex; align-items: center; gap: 6px; }
+.wb-cr-trigger {
+  min-width: 220px; height: 30px; padding: 0 12px;
+  border: 1px solid var(--rnp-border); border-radius: var(--rnp-radius-sm);
+  background: var(--rnp-surface); color: var(--rnp-text);
+  font-family: var(--rnp-font); font-size: 12px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; font-weight: 600;
+}
+.wb-cr-trigger::before { content: '📅'; font-size: 13px; }
+.wb-cr-trigger:hover { border-color: var(--rnp-primary); }
+
+/* Litepicker theme override to fit dark mode */
+.litepicker { font-family: var(--rnp-font) !important; }
+.litepicker .container__months { background: var(--rnp-surface) !important; border: 1px solid var(--rnp-border) !important; }
+.litepicker .container__months .month-item-header div > .month-item-name,
+.litepicker .container__months .month-item-header div > .month-item-year,
+.litepicker .container__days .day-item { color: var(--rnp-text) !important; }
+.litepicker .container__days .day-item.is-today { color: var(--rnp-blue-2) !important; }
+.litepicker .container__days .day-item:hover { box-shadow: inset 0 0 0 1px var(--rnp-primary) !important; color: var(--rnp-text) !important; }
+.litepicker .container__days .day-item.is-start-date,
+.litepicker .container__days .day-item.is-end-date { background: var(--rnp-primary) !important; color: #fff !important; }
+.litepicker .container__days .day-item.is-in-range { background: rgba(59,126,245,.18) !important; color: var(--rnp-text) !important; }
+.litepicker .container__days .day-item.is-locked { color: rgba(255,255,255,.1) !important; }
+.litepicker .container__months .month-item-header .button-previous-month svg,
+.litepicker .container__months .month-item-header .button-next-month svg { fill: var(--rnp-text) !important; }
+
+/* Toolbar */
+.wb-toolbar {
+  display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;
+}
+.wb-toolbar-spacer { flex:1; }
+.wb-count { font-size:11px; color:var(--rnp-text-muted); }
+
+/* Grid */
+.wb-grid {
+  display:grid;
+  grid-template-columns:repeat(12, 1fr);
+  gap:12px;
+  min-height:120px;
+}
+.wb-grid-empty {
+  grid-column:1 / -1;
+  display:flex; align-items:center; justify-content:center;
+  min-height:200px; border:2px dashed var(--rnp-border); border-radius:var(--rnp-radius-lg);
+  color:var(--rnp-text-muted); font-size:13px;
+}
+
+/* Widget wrapper */
+.wb-widget {
+  padding:0; cursor:default;
+  transition:opacity var(--rnp-transition), border-color var(--rnp-transition);
+}
+.wb-widget.wb-full    { grid-column:span 12; }
+.wb-widget.wb-half    { grid-column:span 6; }
+.wb-widget.wb-third   { grid-column:span 4; }
+.wb-widget.wb-quarter { grid-column:span 3; }
+.wb-widget.dragging {
+  opacity:0.15;
+  transition:opacity 200ms ease;
+}
+
+/* Smooth reorder animation via FLIP */
+.wb-widget.wb-animating {
+  transition:transform 280ms cubic-bezier(.2,.9,.3,1);
+}
+
+/* Floating ghost */
+.wb-ghost {
+  position:fixed; z-index:1000; pointer-events:none;
+  border-radius:var(--rnp-radius-lg);
+  box-shadow:0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(59,126,245,.3);
+  opacity:0.92;
+  transform:scale(1.02) rotate(0.5deg);
+  transition:opacity 150ms ease, transform 150ms ease;
+}
+
+/* Drop gap — placeholder space */
+.wb-drop-gap {
+  border:2px dashed rgba(59,126,245,.4);
+  border-radius:var(--rnp-radius-lg);
+  background:rgba(59,126,245,.04);
+  min-height:60px;
+  transition:all 200ms cubic-bezier(.2,.9,.3,1);
+}
+
+/* Widget header */
+.wb-widget-header {
+  display:flex; align-items:center; gap:6px;
+  padding:10px 12px 6px;
+  cursor:grab; user-select:none;
+}
+.wb-widget-header:active { cursor:grabbing; }
+.wb-widget-title {
+  flex:1; font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--rnp-text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.wb-widget-title[contenteditable]:focus {
+  color:var(--rnp-text); outline:none;
+  border-bottom:1px solid var(--rnp-primary);
+}
+
+/* Inline controls in header */
+.wb-ctrl {
+  display:flex; align-items:center; gap:2px;
+}
+.wb-ctrl select {
+  height:24px; padding:0 4px; font-size:10px; font-family:var(--rnp-font);
+  background:transparent; border:1px solid transparent; border-radius:6px;
+  color:var(--rnp-text-muted); cursor:pointer; outline:none;
+  transition:all var(--rnp-transition);
+}
+.wb-ctrl select:hover { border-color:var(--rnp-border); color:var(--rnp-text); }
+.wb-ctrl select:focus { border-color:var(--rnp-primary); color:var(--rnp-text); }
+
+.wb-btn-icon {
+  width:24px; height:24px; display:flex; align-items:center; justify-content:center;
+  border:none; border-radius:6px; background:transparent;
+  color:var(--rnp-text-muted); cursor:pointer; font-size:13px;
+  font-family:var(--rnp-font); transition:all var(--rnp-transition);
+}
+.wb-btn-icon:hover { background:rgba(255,255,255,.06); color:var(--rnp-text); }
+.wb-btn-icon.wb-btn-delete:hover { background:rgba(248,113,113,.15); color:var(--rnp-red); }
+
+/* Widget body */
+.wb-widget-body { padding:4px 12px 12px; min-height:60px; }
+
+/* KPI inside widget */
+.wb-kpi-value {
+  font-size:28px; line-height:1; font-weight:normal; letter-spacing:-0.02em;
+  margin-bottom:4px;
+}
+.wb-kpi-value.accent-blue   { color:var(--rnp-blue); }
+.wb-kpi-value.accent-green  { color:var(--rnp-green); }
+.wb-kpi-value.accent-violet { color:var(--rnp-violet); }
+.wb-kpi-value.accent-yellow { color:var(--rnp-yellow); }
+.wb-kpi-value.accent-red    { color:var(--rnp-red); }
+.wb-kpi-sub { font-size:11px; color:var(--rnp-text-muted); }
+
+/* Bars */
+.wb-bar-row { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:12px; }
+.wb-bar-label { flex:0 0 120px; color:var(--rnp-text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wb-bar-track { flex:1; height:20px; background:rgba(255,255,255,.04); border-radius:4px; overflow:hidden; }
+.wb-bar-fill { height:100%; border-radius:4px; display:flex; align-items:center; padding:0 6px; font-size:10px; font-weight:600; color:#fff; min-width:2px; transition:width .5s ease; }
+.wb-bar-value { flex:0 0 80px; text-align:right; font-variant-numeric:tabular-nums; }
+
+/* Funnel */
+.wb-funnel-step { display:flex; align-items:center; gap:10px; margin-bottom:5px; }
+.wb-funnel-label { flex:0 0 130px; font-size:11px; color:var(--rnp-text-muted); }
+.wb-funnel-bar-wrap { flex:1; height:26px; position:relative; }
+.wb-funnel-bar {
+  height:100%; border-radius:5px;
+  background:linear-gradient(90deg, var(--rnp-violet), var(--rnp-blue));
+  display:flex; align-items:center; padding:0 8px;
+  font-size:10px; font-weight:600; color:#fff; min-width:24px; transition:width .5s ease;
+}
+.wb-funnel-bar.lost { background:linear-gradient(90deg, var(--rnp-red), #ef4444); }
+.wb-funnel-cr { font-size:10px; color:var(--rnp-text-muted); margin-left:6px; white-space:nowrap; }
+
+/* Donut */
+.wb-donut-wrap { display:flex; align-items:center; gap:20px; justify-content:center; flex-wrap:wrap; padding:8px 0; }
+.wb-donut { width:140px; height:140px; border-radius:50%; position:relative; flex-shrink:0; }
+.wb-donut::after { content:''; position:absolute; top:28px; left:28px; right:28px; bottom:28px; border-radius:50%; background:var(--rnp-bg); }
+.wb-donut-legend { display:flex; flex-direction:column; gap:6px; }
+.wb-legend-item { display:flex; align-items:center; gap:6px; font-size:11px; }
+.wb-legend-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+.wb-legend-pct { color:var(--rnp-text-muted); min-width:28px; font-size:10px; }
+
+/* Waterfall */
+.wb-wf-row { display:flex; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid rgba(255,255,255,.03); font-size:12px; }
+.wb-wf-row:last-child { border-bottom:none; }
+.wb-wf-label { flex:0 0 180px; color:var(--rnp-text-muted); }
+.wb-wf-bar-wrap { flex:1; height:18px; }
+.wb-wf-bar { height:100%; border-radius:4px; min-width:2px; }
+.wb-wf-bar.income { background:linear-gradient(90deg, var(--rnp-green), #22c55e); }
+.wb-wf-bar.expense { background:linear-gradient(90deg, var(--rnp-red), #ef4444); }
+.wb-wf-bar.net-pos { background:linear-gradient(90deg, var(--rnp-green), #22c55e); }
+.wb-wf-bar.net-neg { background:linear-gradient(90deg, var(--rnp-red), #ef4444); }
+.wb-wf-amount { flex:0 0 100px; text-align:right; font-variant-numeric:tabular-nums; }
+.wb-wf-row.total { padding-top:8px; margin-top:4px; border-top:2px solid rgba(255,255,255,.1); }
+.wb-wf-row.total .wb-wf-label { color:var(--rnp-text); font-weight:600; }
+
+/* Hero progress */
+.wb-hero-center { text-align:center; padding:8px 0; }
+.wb-hero-big { font-size:32px; font-weight:800; letter-spacing:-0.02em; }
+.wb-hero-track { height:8px; border-radius:999px; background:rgba(255,255,255,.06); margin:10px 0; overflow:hidden; }
+.wb-hero-fill { height:100%; border-radius:999px; background:linear-gradient(90deg, var(--rnp-blue), var(--rnp-violet)); transition:width .6s ease; }
+.wb-hero-sub { font-size:11px; color:var(--rnp-text-muted); }
+
+/* Line chart */
+.wb-line-svg { width:100%; height:160px; }
+
+/* Wizard overlay */
+.wb-wizard-overlay {
+  display:none; position:fixed; inset:0; z-index:100;
+  background:rgba(0,0,0,.6); backdrop-filter:blur(4px);
+  align-items:flex-start; justify-content:center; padding:60px 20px; overflow-y:auto;
+}
+.wb-wizard-overlay.open { display:flex; }
+.wb-wizard {
+  width:100%; max-width:620px; background:var(--rnp-surface);
+  border:1px solid var(--rnp-border); border-radius:var(--rnp-radius-lg);
+  box-shadow:0 30px 60px rgba(0,0,0,.5); animation:rnp-fade-up .25s var(--rnp-ease);
+}
+.wb-wizard-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--rnp-border); }
+.wb-wizard-title { font-size:14px; }
+.wb-wizard-close { background:none; border:none; color:var(--rnp-text-muted); cursor:pointer; font-size:20px; padding:0 4px; }
+.wb-wizard-close:hover { color:var(--rnp-text); }
+.wb-wizard-body { padding:14px 18px; }
+
+/* Type cards grid */
+.wb-type-grid {
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;
+}
+.wb-type-card {
+  padding:14px 10px; cursor:pointer; text-align:center;
+  border:1px dashed var(--rnp-border); border-radius:var(--rnp-radius-sm);
+  background:transparent; color:var(--rnp-text-muted);
+  font-family:var(--rnp-font); font-size:11px; transition:all var(--rnp-transition);
+}
+.wb-type-card:hover { background:var(--rnp-surface-3); border-color:var(--rnp-violet); color:var(--rnp-text); }
+.wb-type-card .wb-tc-icon { font-size:22px; display:block; margin-bottom:6px; }
+.wb-type-card .wb-tc-label { font-weight:600; margin-bottom:2px; }
+.wb-type-card .wb-tc-desc { font-size:10px; color:var(--rnp-text-muted); }
+
+/* Config form in wizard */
+.wb-config-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.wb-config-label { flex:0 0 100px; font-size:11px; color:var(--rnp-text-muted); }
+.wb-config-input { flex:1; }
+.wb-config-input select, .wb-config-input input {
+  width:100%; height:32px; padding:0 8px;
+  background:var(--rnp-surface-2); border:1px solid var(--rnp-border);
+  border-radius:var(--rnp-radius-sm); color:var(--rnp-text);
+  font-family:var(--rnp-font); font-size:12px; outline:none;
+}
+.wb-config-input select:focus, .wb-config-input input:focus { border-color:var(--rnp-primary); }
+.wb-wizard-foot { padding:12px 18px; border-top:1px solid var(--rnp-border); display:flex; justify-content:flex-end; gap:8px; }
+
+/* Responsive */
+@media (max-width:1100px) {
+  .wb-widget.wb-half { grid-column:span 12; }
+  .wb-widget.wb-quarter { grid-column:span 6; }
+}
+@media (max-width:700px) {
+  .wb-widget.wb-quarter { grid-column:span 12; }
+  .wb-type-grid { grid-template-columns:repeat(2, 1fr); }
+  .wb-topbar { flex-direction:column; align-items:flex-start; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  body::before, .rnp-panel { animation:none !important; }
+  * { transition:none !important; }
+}
+</style>
+</head>
+<body>
+<!-- EA Global Nav -->
+<style>
+.ea-global-nav{position:fixed;top:0;left:0;right:0;z-index:9999;height:44px;background:rgba(8,12,18,.96);border-bottom:1px solid #1e2d3d;backdrop-filter:blur(16px);display:flex;align-items:center;padding:0 20px;font-family:'Monaco','Menlo','Courier New',monospace}
+.ea-global-nav a{color:#8aa0bc;text-decoration:none;font-size:12px;padding:0 14px;height:44px;display:flex;align-items:center;border-bottom:2px solid transparent;transition:color 150ms,border-color 150ms;white-space:nowrap}
+.ea-global-nav a:hover{color:#e8f0ff}
+.ea-global-nav a.active{color:#e8f0ff;border-bottom-color:#3b7ef5}
+.ea-global-nav .logo{font-size:13px;font-weight:600;color:#e8f0ff;margin-right:8px;padding-left:0;border:none!important}
+.ea-global-nav-spacer{height:44px}
+</style>
+<nav class="ea-global-nav">
+  <a href="index.html" class="logo">&larr; Утренний P&L</a>
+  <a href="#" class="active">Демо · Детейлинг-агентство</a>
+  <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:4px 12px;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.32);border-radius:999px;font-size:11px;color:#86efac;font-weight:500">
+    <span style="width:6px;height:6px;background:#4ade80;border-radius:50%;box-shadow:0 0 8px #4ade80"></span>
+    Демо-режим · данные вымышленные
+  </span>
+  <a href="https://t.me/vslgvrlv" style="color:#60a5fa!important;padding-left:16px!important">Написать в TG &rarr;</a>
+</nav>
+<div class="ea-global-nav-spacer"></div>
+<div class="rnp-app">
+
+  <!-- TOPBAR -->
+  <div class="wb-topbar">
+    <div>
+      <div class="wb-title">Демо Детейлинг · Конструктор</div>
+      <div class="wb-subtitle">Перетаскивай виджеты, меняй метрики, добавляй новые — CEO сам собирает дашборд</div>
+    </div>
+    <div class="wb-topbar-right">
+      <!-- Period bar (same UX as RNP dashboard) -->
+      <div class="wb-period-bar">
+        <button class="wb-pbtn" id="wb-prev" title="Предыдущий">←</button>
+        <select id="wb-period-select" class="wb-pselect">
+          <option value="7">7 дней</option>
+          <option value="14">14 дней</option>
+          <option value="30" selected>30 дней</option>
+          <option value="60">60 дней</option>
+          <option value="90">90 дней</option>
+          <option value="mtd">Этот месяц</option>
+          <option value="custom">Произвольный...</option>
+        </select>
+        <button class="wb-pbtn" id="wb-next" title="Следующий">→</button>
+      </div>
+      <div class="rnp-segmented" id="mode-toggle">
+        <button class="is-active" data-mode="pnl">PNL</button>
+        <button data-mode="dds">ДДС</button>
+      </div>
+      <span id="wb-period-label" class="wb-period-label"></span>
+      <div id="sync-status" style="font-size:10px;color:var(--rnp-text-muted)"></div>
+    </div>
+  </div>
+
+  <!-- Custom range (hidden by default) -->
+  <div class="wb-custom-range" id="wb-custom-range" style="display:none">
+    <div class="wb-cr-presets">
+      <span class="wb-cr-label">Пресеты:</span>
+      <button class="wb-cr-preset" data-preset="today">Сегодня</button>
+      <button class="wb-cr-preset" data-preset="yesterday">Вчера</button>
+      <button class="wb-cr-preset" data-preset="this-week">Эта неделя</button>
+      <button class="wb-cr-preset" data-preset="last-week">Прошлая неделя</button>
+      <button class="wb-cr-preset" data-preset="this-month">Этот месяц</button>
+      <button class="wb-cr-preset" data-preset="last-month">Прошлый месяц</button>
+    </div>
+    <div class="wb-cr-picker-wrap">
+      <button type="button" class="wb-cr-trigger" id="wb-cr-trigger">Выбрать даты</button>
+      <input type="hidden" id="wb-date-from">
+      <input type="hidden" id="wb-date-to">
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="wb-toolbar">
+    <button class="rnp-button" onclick="openWizard()">+ Виджет</button>
+    <button class="rnp-button rnp-button-secondary" onclick="resetLayout()">Сбросить</button>
+    <div class="wb-toolbar-spacer"></div>
+    <span class="wb-count" id="widget-count"></span>
+    <a href="index.html" style="font-size:11px;color:var(--rnp-text-muted);text-decoration:none">&larr; На лендинг</a>
+  </div>
+
+  <!-- GRID -->
+  <div class="wb-grid" id="widget-grid"></div>
+
+</div>
+
+<!-- WIZARD -->
+<div class="wb-wizard-overlay" id="wizard-overlay" onclick="if(event.target===this)closeWizard()">
+  <div class="wb-wizard">
+    <div class="wb-wizard-head">
+      <div class="wb-wizard-title" id="wizard-title">Добавить виджет</div>
+      <button class="wb-wizard-close" onclick="closeWizard()">&times;</button>
+    </div>
+    <div class="wb-wizard-body" id="wizard-body"></div>
+    <div class="wb-wizard-foot" id="wizard-foot"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   CONFIG
+   ═══════════════════════════════════════════════════════════════════ */
+const API_BASE = '';
+const STORAGE_KEY = 'morning-pl-demo-layout';
+const LAYOUT_VERSION = 1;
+const DEMO_MODE = true;
+
+/* ═══════════════════════════════════════════════════════════════════
+   DATA LAYER
+   ═══════════════════════════════════════════════════════════════════ */
+const DATA = { fact: null, deals: null };
+
+const MONTH_NAMES = {
+  '01':'Январь','02':'Февраль','03':'Март','04':'Апрель',
+  '05':'Май','06':'Июнь','07':'Июль','08':'Август',
+  '09':'Сентябрь','10':'Октябрь','11':'Ноябрь','12':'Декабрь'
+};
+
+async function apiFetch(ep) {
+  // DEMO_MODE: no real network calls, all data is hardcoded below
+  if (ep.startsWith('/api/sync-status')) {
+    return { last_sync: { finished_at: new Date().toISOString() }, deals_in_db: 234 };
+  }
+  return {};
+}
+
+function getCurrentMode() {
+  return document.querySelector('#mode-toggle button.is-active')?.dataset.mode || 'pnl';
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PERIOD SELECTOR — date range with presets and custom picker
+   ═══════════════════════════════════════════════════════════════════ */
+
+// Date helpers
+function toISO(d) {
+  if (typeof d === 'string') return d;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function parseISO(s) { return new Date(s + 'T00:00:00'); }
+function addDays(d, n) {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+function daysBetween(from, to) {
+  const f = typeof from === 'string' ? parseISO(from) : from;
+  const t = typeof to   === 'string' ? parseISO(to)   : to;
+  return Math.round((t - f) / 86400000) + 1;
+}
+
+let PERIOD = {
+  mode: '30',        // '7'|'14'|'30'|'60'|'90'|'mtd'|'custom'
+  offset: 0,         // steps back (for rolling periods)
+  from: null,        // for custom
+  to: null,          // for custom
+};
+
+function getPeriod() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const m = PERIOD.mode;
+
+  if (m === 'custom') {
+    if (!PERIOD.from || !PERIOD.to) {
+      return { from: toISO(addDays(today, -29)), to: toISO(today), label: 'Выбери даты', days: 30 };
+    }
+    return { from: PERIOD.from, to: PERIOD.to, label: fmtPeriodLabel(PERIOD.from, PERIOD.to), days: daysBetween(PERIOD.from, PERIOD.to) };
+  }
+
+  if (m === 'mtd') {
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    const ref = PERIOD.offset > 0
+      ? new Date(today.getFullYear(), today.getMonth() - PERIOD.offset, 1)
+      : first;
+    const end = PERIOD.offset > 0
+      ? new Date(today.getFullYear(), today.getMonth() - PERIOD.offset + 1, 0)
+      : today;
+    return { from: toISO(ref), to: toISO(end), label: fmtPeriodLabel(toISO(ref), toISO(end)), days: daysBetween(ref, end) };
+  }
+
+  const days = parseInt(m, 10);
+  const to = addDays(today, -PERIOD.offset * days);
+  const from = addDays(to, -(days - 1));
+  return { from: toISO(from), to: toISO(to), label: fmtPeriodLabel(toISO(from), toISO(to)), days };
+}
+
+function fmtPeriodLabel(from, to) {
+  if (!from || !to) return '—';
+  const f = parseISO(from), t = parseISO(to);
+  const sameYear = f.getFullYear() === t.getFullYear();
+  const sameMonth = sameYear && f.getMonth() === t.getMonth();
+  const sameDay = sameMonth && f.getDate() === t.getDate();
+  if (sameDay) return f.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (sameMonth) return `${f.getDate()}–${t.getDate()} ${f.toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' })}`;
+  const fOpts = sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' };
+  return `${f.toLocaleDateString('ru-RU', fOpts)} — ${t.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+}
+
+function applyPresetRange(preset) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  let from, to;
+  if (preset === 'today') { from = to = today; }
+  else if (preset === 'yesterday') { from = to = addDays(today, -1); }
+  else if (preset === 'this-week') {
+    const day = (today.getDay() + 6) % 7;
+    from = addDays(today, -day);
+    to = today;
+  } else if (preset === 'last-week') {
+    const day = (today.getDay() + 6) % 7;
+    from = addDays(today, -day - 7);
+    to = addDays(from, 6);
+  } else if (preset === 'this-month') {
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+    to = today;
+  } else if (preset === 'last-month') {
+    from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    to = new Date(today.getFullYear(), today.getMonth(), 0);
+  } else { return; }
+  PERIOD.from = toISO(from);
+  PERIOD.to = toISO(to);
+  PERIOD.mode = 'custom';
+  document.getElementById('wb-period-select').value = 'custom';
+  toggleCustomRange();
+  if (LITEPICKER) LITEPICKER.setDateRange(PERIOD.from, PERIOD.to);
+  updateTriggerLabel();
+  updatePeriodUI();
+  reloadAll();
+}
+
+function updatePeriodUI() {
+  const p = getPeriod();
+  document.getElementById('wb-period-label').textContent = p.label;
+  // Disable "next" when at offset 0
+  document.getElementById('wb-next').disabled = PERIOD.offset <= 0;
+  // Hide arrows in custom mode
+  const isCustom = PERIOD.mode === 'custom';
+  document.getElementById('wb-prev').style.display = isCustom ? 'none' : '';
+  document.getElementById('wb-next').style.display = isCustom ? 'none' : '';
+}
+
+function toggleCustomRange() {
+  const el = document.getElementById('wb-custom-range');
+  el.style.display = PERIOD.mode === 'custom' ? 'flex' : 'none';
+}
+
+function updateTriggerLabel() {
+  const el = document.getElementById('wb-cr-trigger');
+  if (!el) return;
+  if (PERIOD.from && PERIOD.to) {
+    el.textContent = fmtPeriodLabel(PERIOD.from, PERIOD.to);
+  } else {
+    el.textContent = 'Выбрать даты';
+  }
+}
+
+let LITEPICKER = null;
+function initLitepicker() {
+  if (LITEPICKER) return;
+  const trigger = document.getElementById('wb-cr-trigger');
+  if (!trigger || typeof Litepicker === 'undefined') return;
+
+  LITEPICKER = new Litepicker({
+    element: trigger,
+    singleMode: false,
+    numberOfMonths: 2,
+    numberOfColumns: 2,
+    format: 'YYYY-MM-DD',
+    lang: 'ru-RU',
+    firstDay: 1,
+    maxDate: new Date(),
+    autoApply: true,
+    setup: (picker) => {
+      picker.on('selected', (d1, d2) => {
+        PERIOD.from = d1.format('YYYY-MM-DD');
+        PERIOD.to = d2.format('YYYY-MM-DD');
+        PERIOD.mode = 'custom';
+        updateTriggerLabel();
+        updatePeriodUI();
+        // Clear any active preset highlights
+        document.querySelectorAll('.wb-cr-preset').forEach(b => b.classList.remove('is-active'));
+        reloadAll();
+      });
+    },
+  });
+  // If we already have from/to set, sync picker
+  if (PERIOD.from && PERIOD.to) LITEPICKER.setDateRange(PERIOD.from, PERIOD.to);
+  updateTriggerLabel();
+}
+
+async function loadSyncStatus() {
+  const el = document.getElementById('sync-status');
+  if (el) el.textContent = 'Демо · 234 сделки';
+}
+
+// Mock deal titles + stages — generated once, filtered by period on each reload
+const MOCK_DEAL_TITLES = [
+  'Детейлинг Toyota RAV4 — полный комплекс','Антигравийная плёнка Mercedes E-class — зоны риска',
+  'Керамика BMW X5 — весь кузов','Полировка + защита Audi Q7','Тонировка Kia Sportage',
+  'Плёнка Lexus RX — капот и бампер','Детейлинг Porsche Cayenne','Керамика Toyota Camry',
+  'Bronze Mini Cooper — тонировка','Оклейка Tesla Model Y — матовая','Защита Geely Monjaro',
+  'Химчистка + полировка Mazda CX-5','Полный комплекс BMW 5','Керамика Hyundai Tucson',
+  'Антигравий VW Tiguan','Детейлинг Range Rover Velar','Плёнка Mercedes GLE — зоны риска',
+  'Керамика Skoda Kodiaq','Тонировка BMW X3','Защита Kia K5','Полировка Audi A6',
+  'Оклейка Lexus NX — матовый','Химчистка Toyota Highlander','Защита Genesis GV70',
+  'Плёнка Chery Tiggo','Детейлинг Omoda C5','Керамика Voyah Free','Тонировка Exeed TXL',
+  'Полировка Lada Vesta','Защита Haval F7','Плёнка Jetour X90','Детейлинг Changan CS75',
+  'Керамика Tank 300','Оклейка Li L9 — матовая','Тонировка Zeekr 001','Защита Avatr 11',
+  'Плёнка Nio ET5','Керамика Xpeng G9','Полный комплекс Rolls-Royce Cullinan',
+  'Антигравий Bentley Bentayga','Детейлинг Maserati Levante','Керамика Aston Martin DBX',
+  'Оклейка Ferrari Roma','Плёнка McLaren GT','Детейлинг Lamborghini Urus',
+  'Керамика Porsche 911','Тонировка Lada Largus','Защита Hyundai Solaris',
+  'Плёнка Renault Duster','Полировка Volkswagen Polo'
+];
+const MOCK_STAGES = [
+  {key:'lead',                 name:'Новый лид',            weight:0.25},
+  {key:'qualified',            name:'Квалифицирован',       weight:0.18},
+  {key:'consultation_booked',  name:'Консультация назначена', weight:0.10},
+  {key:'consultation_visited', name:'Консультация посещена', weight:0.08},
+  {key:'wrap_booked',          name:'Запись на работы',     weight:0.08},
+  {key:'in_progress',          name:'В работе',             weight:0.05},
+  {key:'completed',            name:'Выполнено',            weight:0.04},
+  {key:'paid',                 name:'Оплачено',             weight:0.11},
+  {key:'lost',                 name:'Проигрыш',             weight:0.11},
+];
+
+let ALL_DEALS = null;
+function generateAllDeals() {
+  if (ALL_DEALS) return ALL_DEALS;
+  const pseudoRand = (seed) => { let x = Math.sin(seed) * 10000; return x - Math.floor(x); };
+  const today = new Date(); today.setHours(0,0,0,0);
+  const RANGE_DAYS = 180; // history depth — so custom periods up to 90d still find data
+  const DEALS_TOTAL = 1200;
+  const all = [];
+  let idCounter = 1001;
+  for (let i = 0; i < DEALS_TOTAL; i++) {
+    let r = pseudoRand(i + 17), acc = 0, stage = MOCK_STAGES[0];
+    for (const s of MOCK_STAGES) { acc += s.weight; if (r < acc) { stage = s; break; } }
+    const marketer = pseudoRand(i + 91) < 0.58 ? 'dmitry' : 'ilya';
+    const utm_medium = marketer === 'dmitry' ? 'dm.kh-cpc' : 'cpc';
+    const opp = Math.round((50 + pseudoRand(i + 33) * 150) * 1000 / 100) * 100;
+    const profitPct = 0.12 + pseudoRand(i + 77) * 0.08;
+    const profit = Math.round(opp * profitPct / 100) * 100;
+    const daysAgo = Math.floor(pseudoRand(i + 3) * RANGE_DAYS);
+    const dcreate = new Date(today.getTime() - daysAgo * 86400000);
+    let dclose = null;
+    if (stage.key === 'paid' || stage.key === 'completed') {
+      const closeDays = Math.floor(4 + pseudoRand(i + 5) * 18);
+      const dcloseCand = new Date(dcreate.getTime() + closeDays * 86400000);
+      if (dcloseCand <= today) dclose = dcloseCand;
+      else {
+        // force to pipeline-side — if close would be in future, keep as in_progress
+        stage = MOCK_STAGES.find(s => s.key === 'in_progress');
+      }
+    }
+    all.push({
+      id: idCounter++,
+      title: MOCK_DEAL_TITLES[i % MOCK_DEAL_TITLES.length],
+      stage_id: stage.key, stage_name: stage.name,
+      opportunity: opp, profit: profit,
+      date_create: toISO(dcreate),
+      close_date: dclose ? toISO(dclose) : null,
+      utm_source: 'yandex', utm_medium,
+      utm_campaign: 'detailing_' + (marketer === 'dmitry' ? 'premium' : 'mass'),
+      contact_id: 5000 + i,
+      assigned_by_id: marketer === 'dmitry' ? 102 : 103,
+      marketer,
+      responsible: marketer === 'dmitry' ? 'Дмитрий' : 'Илья',
+      source: marketer === 'dmitry' ? 'Дмитрий' : 'Илья',
+    });
+  }
+  ALL_DEALS = all;
+  return all;
+}
+
+async function loadFactFromAPI() {
+  // DEMO_MODE: filter pre-generated deals by period + mode
+  const p = getPeriod();
+  const mode = getCurrentMode();
+  const periodLabel = p.label;
+  const periodDays = Math.max(1, daysBetween(p.from, p.to));
+  const all = generateAllDeals();
+
+  // Filter deals by period.
+  // PNL mode: period covers lead cohort → filter by date_create.
+  // DDS mode: period covers cash arrival → won by close_date, rest by date_create.
+  const inRange = (iso) => iso && iso >= p.from && iso <= p.to;
+  const deals = all.filter(d => {
+    if (mode === 'dds') {
+      if (d.stage_id === 'paid' || d.stage_id === 'completed') {
+        return inRange(d.close_date);
+      }
+      return inRange(d.date_create);
+    }
+    return inRange(d.date_create);
+  });
+
+  // Funnel counts — cumulative by stage order
+  const funnelMap = { qualified:0, consultation_booked:0, consultation_visited:0, wrap_booked:0, in_progress:0, completed:0, paid:0 };
+  let lostTotal = 0;
+  const order = ['qualified','consultation_booked','consultation_visited','wrap_booked','in_progress','completed','paid'];
+  for (const d of deals) {
+    if (d.stage_id === 'lost') { lostTotal++; continue; }
+    const idx = order.indexOf(d.stage_id);
+    if (idx >= 0) for (let i = 0; i <= idx; i++) funnelMap[order[i]]++;
+  }
+
+  // Won / Pipeline
+  const wonDeals = deals.filter(d => d.stage_id === 'paid' || d.stage_id === 'completed');
+  const wonRevenue = wonDeals.reduce((s,d) => s + d.opportunity, 0);
+  const wonProfit = wonDeals.reduce((s,d) => s + d.profit, 0);
+  const pipelineDeals = deals.filter(d => d.stage_id !== 'lost');
+  const pipeline = pipelineDeals.reduce((s,d) => s + d.opportunity, 0);
+  const pipelineProfit = pipelineDeals.reduce((s,d) => s + d.profit, 0);
+
+  const clientRevenue = wonRevenue;
+  const commissionEA = wonProfit;
+  const transitToPartner = Math.max(clientRevenue - commissionEA, 0);
+  const pipelineTransit = Math.max(pipeline - pipelineProfit, 0);
+  const wonDealsCount = wonDeals.length;
+  const avgCheck = wonDealsCount > 0 ? Math.round(wonRevenue / wonDealsCount) : 0;
+  const avgMargin = clientRevenue > 0 ? commissionEA / clientRevenue : 0;
+
+  // Marketing — spend scales linearly with period length (base 30 days)
+  const scale = periodDays / 30;
+  const dSpendBase = 220000, iSpendBase = 148000;
+  const dFotBase = 50000, iFotBase = 38000;
+  const dSpend = Math.round(dSpendBase * scale);
+  const iSpend = Math.round(iSpendBase * scale);
+  const dFot = Math.round(dFotBase * scale);
+  const iFot = Math.round(iFotBase * scale);
+  const dDeals = deals.filter(d => d.marketer === 'dmitry');
+  const iDeals = deals.filter(d => d.marketer === 'ilya');
+  const dPaid = dDeals.filter(d => d.stage_id === 'paid' || d.stage_id === 'completed').length;
+  const iPaid = iDeals.filter(d => d.stage_id === 'paid' || d.stage_id === 'completed').length;
+  const dLeads = dDeals.length, iLeads = iDeals.length;
+  const dCpl = dLeads > 0 ? Math.round(dSpend / dLeads) : 0;
+  const iCpl = iLeads > 0 ? Math.round(iSpend / iLeads) : 0;
+
+  // Fixed expenses also scale with period
+  const fixed = [
+    { name:'CRM Битрикс24', amount:Math.round(12000 * scale) },
+    { name:'Аренда офиса',  amount:Math.round(45000 * scale) },
+    { name:'Бухгалтерия',   amount:Math.round(18000 * scale) },
+    { name:'Юрист',         amount:Math.round(8000 * scale) },
+  ];
+  const fixedTotal = fixed.reduce((s,f)=>s+f.amount,0);
+  const acquiringFact = Math.round(wonRevenue * 0.035 * 0.7);
+  const acquiringPipe = Math.round(pipeline * 0.035 * 0.7);
+  const marketingSpend = dSpend + iSpend;
+  const marketingFot = dFot + iFot;
+  const totalFact = marketingSpend + marketingFot + fixedTotal + acquiringFact;
+  const totalPipe = marketingSpend + marketingFot + fixedTotal + acquiringPipe;
+  const taxFact = Math.max(0, Math.round((commissionEA - totalFact) * 0.15));
+  const taxPipe = Math.max(0, Math.round((pipelineProfit - totalPipe) * 0.15));
+  const netProfit = commissionEA - totalFact - taxFact;
+  const netProfitPipe = pipelineProfit - totalPipe - taxPipe;
+
+  DATA.rnp = [];
+  DATA.deals = deals;
+
+  DATA.fact = {
+    period: periodLabel,
+    deals: {
+      total: deals.length,
+      funnel: {
+        leads: funnelMap.qualified,
+        kpSent: funnelMap.consultation_booked,
+        kpAgreed: funnelMap.consultation_visited,
+        recorded: funnelMap.wrap_booked,
+        arrived: funnelMap.in_progress,
+        completed: funnelMap.completed,
+        paid: funnelMap.paid,
+        lost: lostTotal,
+      },
+      mix: [
+        { name:'Базовая мойка + полировка', pct:12, avgCheck:18000, markupType:'zones' },
+        { name:'Защитная плёнка зоны риска', pct:48, avgCheck:75000, markupType:'zones' },
+        { name:'Керамика кузова',            pct:28, avgCheck:95000, markupType:'full' },
+        { name:'Полный комплекс + детейлинг', pct:12, avgCheck:180000, markupType:'full' },
+      ],
+      clientRevenue, transitToPartner, commissionEA, avgCheck,
+      completedCount: deals.length, avgMargin,
+      wonRevenue, wonProfit, wonDeals: wonDealsCount,
+      totalPipeline: pipeline, totalProfit: pipelineProfit,
+      pipelineTransit,
+    },
+    marketing: {
+      dmitry: { budget:dSpend, fot:dFot, leads:dLeads, cpl:dCpl, payments:dPaid },
+      ilya:   { budget:iSpend, fot:iFot, leads:iLeads, cpl:iCpl, payments:iPaid },
+    },
+    expenses: {
+      fixed, fixedTotal,
+      acquiringFact, acquiringPipe,
+      marketingSpend, marketingFot,
+      marketingByName: { dmitry:dSpend, ilya:iSpend },
+      staff: [ {name:'dmitry', amount:dFot}, {name:'ilya', amount:iFot} ],
+      totalFact, totalPipe,
+    },
+    tax: { regime:'usn_15', rate:0.15, amountFact:taxFact, amountPipe:taxPipe },
+    netProfit, netProfitPipe,
+    romi: 0,
+  };
+
+  const f = DATA.fact;
+  const totalMkt = (f.marketing.dmitry.budget||0) + (f.marketing.ilya.budget||0);
+  f.romi = totalMkt > 0 ? ((f.deals.commissionEA - totalMkt) / totalMkt) * 100 : 0;
+
+  return DATA.fact;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DATA ACCESS — generic, any widget can use any data
+   ═══════════════════════════════════════════════════════════════════ */
+
+function getVal(key) {
+  if (!DATA.fact) return null;
+  return key.split('.').reduce((o, k) => o?.[k], DATA.fact);
+}
+
+function fmt(n) {
+  if (n == null || isNaN(n)) return '\u2014';
+  const abs = Math.abs(Math.round(n));
+  const s = abs.toLocaleString('ru-RU');
+  return n < 0 ? `(${s})\u20BD` : `${s}\u20BD`;
+}
+function fmtShort(n) {
+  if (n == null || isNaN(n)) return '\u2014';
+  const abs = Math.abs(n);
+  if (abs >= 1e6) return (n<0?'\u2212':'') + (abs/1e6).toFixed(1) + 'M\u20BD';
+  if (abs >= 1e3) return (n<0?'\u2212':'') + Math.round(abs/1e3) + '\u043A\u20BD';
+  return fmt(n);
+}
+function fmtPct(n) { return (n==null||isNaN(n)) ? '\u2014' : Math.round(n*100)+'%'; }
+function fmtPctRaw(n) { return (n==null||isNaN(n)) ? '\u2014' : Math.round(n)+'%'; }
+function fmtNum(n) { return (n==null||isNaN(n)) ? '\u2014' : Math.round(n).toLocaleString('ru-RU'); }
+
+function fmtAuto(n, format) {
+  if (format === 'money') return fmt(n);
+  if (format === 'moneyShort') return fmtShort(n);
+  if (format === 'pct') return fmtPct(n);
+  if (format === 'pctRaw') return fmtPctRaw(n);
+  return fmtNum(n);
+}
+
+/* Dimensions — for filtering deals */
+const DIMENSIONS = [
+  { key:'source', label:'Источник', values:() => {
+    const sources = [...new Set(DATA.deals?.map(d => d.responsible || d.source || 'unknown'))].sort();
+    return [{value:'',label:'Все'}].concat(sources.map(s => ({value:s, label:s})));
+  }},
+  { key:'stage', label:'Стадия', values:() => {
+    const stages = [...new Set(DATA.deals?.map(d => d.stage_name || 'unknown'))].sort();
+    return [{value:'',label:'Все'}].concat(stages.map(s => ({value:s, label:s})));
+  }},
+];
+
+function filterDeals(filters) {
+  let deals = DATA.deals || [];
+  if (filters?.source) deals = deals.filter(d => (d.responsible||d.source) === filters.source);
+  if (filters?.stage) deals = deals.filter(d => d.stage_name === filters.stage);
+  return deals;
+}
+
+/* Metrics — ways to look at the same data */
+const METRICS = {
+  count: { label:'Кол-во', fn: deals => deals.length, format:'num' },
+  money: { label:'Деньги', fn: deals => deals.reduce((s,d) => s + (d.opportunity||0), 0), format:'money' },
+  profit: { label:'Прибыль', fn: deals => deals.reduce((s,d) => s + (d.profit||0), 0), format:'money' },
+  avgCheck: { label:'Ср. чек', fn: deals => deals.length ? deals.reduce((s,d) => s+(d.opportunity||0),0)/deals.length : 0, format:'money' },
+};
+
+/* Data catalog — fields accessible via getVal() */
+const DATA_CATALOG = [
+  { group:'Сделки', key:'deals.total', label:'Всего сделок', format:'num' },
+  { group:'Сделки', key:'deals.clientRevenue', label:'Выручка клиентов', format:'money' },
+  { group:'Сделки', key:'deals.transitToPartner', label:'Транзит партнёру', format:'money' },
+  { group:'Сделки', key:'deals.commissionEA', label:'Комиссия EA', format:'money' },
+  { group:'Сделки', key:'deals.avgCheck', label:'Средний чек', format:'money' },
+  { group:'Сделки', key:'deals.avgMargin', label:'Средняя маржа', format:'pct' },
+  { group:'Сделки', key:'deals.wonRevenue', label:'Выручка (факт)', format:'money' },
+  { group:'Сделки', key:'deals.wonProfit', label:'Прибыль (факт)', format:'money' },
+  { group:'Сделки', key:'deals.totalPipeline', label:'Pipeline', format:'money' },
+  { group:'Сделки', key:'deals.totalProfit', label:'Прибыль pipeline', format:'money' },
+  { group:'Воронка', key:'deals.funnel.leads', label:'Лиды', format:'num' },
+  { group:'Воронка', key:'deals.funnel.kpSent', label:'КП отправлено', format:'num' },
+  { group:'Воронка', key:'deals.funnel.kpAgreed', label:'КП согласовано', format:'num' },
+  { group:'Воронка', key:'deals.funnel.recorded', label:'Записан на оклейку', format:'num' },
+  { group:'Воронка', key:'deals.funnel.arrived', label:'Авто в работе', format:'num' },
+  { group:'Воронка', key:'deals.funnel.completed', label:'Завершён', format:'num' },
+  { group:'Воронка', key:'deals.funnel.paid', label:'Оплачен', format:'num' },
+  { group:'Воронка', key:'deals.funnel.lost', label:'Потеряно', format:'num' },
+  { group:'Маркетинг', key:'marketing.dmitry.budget', label:'Бюджет Дмитрий', format:'money' },
+  { group:'Маркетинг', key:'marketing.dmitry.leads', label:'Лиды Дмитрий', format:'num' },
+  { group:'Маркетинг', key:'marketing.dmitry.cpl', label:'CPL Дмитрий', format:'money' },
+  { group:'Маркетинг', key:'marketing.ilya.budget', label:'Бюджет Илья', format:'money' },
+  { group:'Маркетинг', key:'marketing.ilya.leads', label:'Лиды Илья', format:'num' },
+  { group:'Маркетинг', key:'marketing.ilya.cpl', label:'CPL Илья', format:'money' },
+  { group:'Расходы', key:'expenses.fixedTotal', label:'Постоянные расходы', format:'money' },
+  { group:'Расходы', key:'expenses.acquiringFact', label:'Эквайринг', format:'money' },
+  { group:'Расходы', key:'expenses.marketingSpend', label:'Маркетинг (спенд)', format:'money' },
+  { group:'Расходы', key:'expenses.marketingFot', label:'ФОТ маркетинга', format:'money' },
+  { group:'Расходы', key:'expenses.totalFact', label:'Итого расходов', format:'money' },
+  { group:'Итоги', key:'tax.amountFact', label:'Налог', format:'money' },
+  { group:'Итоги', key:'netProfit', label:'Чистая прибыль', format:'money' },
+  { group:'Итоги', key:'netProfitPipe', label:'Прибыль (pipeline)', format:'money' },
+  { group:'Итоги', key:'romi', label:'ROMI', format:'pctRaw' },
+];
+
+function catalogOptions(selectedKey) {
+  let html = '';
+  let lastGroup = '';
+  for (const c of DATA_CATALOG) {
+    if (c.group !== lastGroup) {
+      if (lastGroup) html += '</optgroup>';
+      html += `<optgroup label="${c.group}">`;
+      lastGroup = c.group;
+    }
+    html += `<option value="${c.key}" ${c.key===selectedKey?'selected':''}>${c.label}</option>`;
+  }
+  if (lastGroup) html += '</optgroup>';
+  return html;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   WIDGET RENDERERS
+   ═══════════════════════════════════════════════════════════════════ */
+
+function render_kpi(w, el) {
+  const cat = DATA_CATALOG.find(c => c.key === w.dataPath);
+  const val = getVal(w.dataPath);
+  const accent = w.accent || 'blue';
+  const formatted = fmtAuto(val, cat?.format || 'money');
+  el.innerHTML = `
+    <div class="wb-kpi-value accent-${accent}">${formatted}</div>
+    ${w.subPath ? `<div class="wb-kpi-sub">${fmtAuto(getVal(w.subPath), 'money')}</div>` : ''}
+  `;
+}
+
+function render_bar(w, el) {
+  const metric = w.metric || 'money';
+  const items = w.bars || [
+    { label:'Дмитрий', dataPath:'marketing.dmitry.budget' },
+    { label:'Илья', dataPath:'marketing.ilya.budget' },
+  ];
+  const values = items.map(it => ({ label:it.label, value:getVal(it.dataPath)||0 }));
+  const maxVal = Math.max(...values.map(v => Math.abs(v.value)), 1);
+  const colors = ['var(--rnp-blue)','var(--rnp-violet)','var(--rnp-green)','var(--rnp-yellow)','var(--rnp-red)'];
+
+  el.innerHTML = values.map((v, i) => {
+    const pct = Math.abs(v.value) / maxVal * 100;
+    const color = colors[i % colors.length];
+    return `<div class="wb-bar-row">
+      <div class="wb-bar-label">${v.label}</div>
+      <div class="wb-bar-track"><div class="wb-bar-fill" style="width:${pct}%;background:${color}">${pct > 20 ? fmtShort(v.value) : ''}</div></div>
+      <div class="wb-bar-value">${fmt(v.value)}</div>
+    </div>`;
+  }).join('');
+}
+
+function render_waterfall(w, el) {
+  const f = DATA.fact;
+  if (!f) { el.innerHTML = '<div class="rnp-empty">Нет данных</div>'; return; }
+
+  const rows = [
+    { label:'Выручка клиентов', value:f.deals.clientRevenue, type:'income' },
+    { label:'Транзит партнёру', value:-f.deals.transitToPartner, type:'expense' },
+    { label:'Комиссия EA', value:f.deals.commissionEA, type:'income', highlight:true },
+    { label:'Маркетинг', value:-(f.expenses.marketingSpend||0), type:'expense' },
+    { label:'ФОТ маркетинга', value:-(f.expenses.marketingFot||0), type:'expense' },
+    { label:'Постоянные', value:-(f.expenses.fixedTotal||0), type:'expense' },
+    { label:'Эквайринг', value:-(f.expenses.acquiringFact||0), type:'expense' },
+    { label:'Налог', value:-(f.tax.amountFact||0), type:'expense' },
+  ];
+  const net = f.netProfit;
+  const maxVal = Math.max(...rows.map(r => Math.abs(r.value)), Math.abs(net), 1);
+
+  el.innerHTML = rows.map(r => {
+    const pct = Math.abs(r.value) / maxVal * 100;
+    const cls = r.value >= 0 ? 'income' : 'expense';
+    const color = r.value >= 0 ? 'var(--rnp-green)' : 'var(--rnp-red)';
+    return `<div class="wb-wf-row${r.highlight?' total':''}">
+      <div class="wb-wf-label">${r.label}</div>
+      <div class="wb-wf-bar-wrap"><div class="wb-wf-bar ${cls}" style="width:${pct}%"></div></div>
+      <div class="wb-wf-amount" style="color:${color}">${fmt(r.value)}</div>
+    </div>`;
+  }).join('') + `<div class="wb-wf-row total">
+    <div class="wb-wf-label">Чистая прибыль</div>
+    <div class="wb-wf-bar-wrap"><div class="wb-wf-bar ${net>=0?'net-pos':'net-neg'}" style="width:${Math.abs(net)/maxVal*100}%"></div></div>
+    <div class="wb-wf-amount" style="color:${net>=0?'var(--rnp-green)':'var(--rnp-red)'}">${fmt(net)}</div>
+  </div>`;
+}
+
+function render_funnel(w, el) {
+  const metric = w.metric || 'count';
+  const deals = filterDeals(w.filters);
+  const f = DATA.fact;
+
+  // Build funnel from deals or from aggregated data
+  const stages = [
+    { key:'qualified', label:'Лиды' },
+    { key:'consultation_booked', label:'КП отправлено' },
+    { key:'consultation_visited', label:'КП согласовано' },
+    { key:'wrap_booked', label:'Записан' },
+    { key:'in_progress', label:'В работе' },
+    { key:'completed', label:'Завершён' },
+    { key:'paid', label:'Оплачен' },
+  ];
+
+  // If filtered, count from deals array; otherwise use aggregated funnel data
+  let stageValues;
+  if (w.filters?.source || w.filters?.stage) {
+    // Client-side: group deals by stage, count cumulatively
+    const stageCounts = {};
+    for (const d of deals) stageCounts[d.stage_name] = (stageCounts[d.stage_name]||0) + 1;
+    const stageMoneys = {};
+    for (const d of deals) stageMoneys[d.stage_name] = (stageMoneys[d.stage_name]||0) + (d.opportunity||0);
+
+    // Cumulative funnel: each stage includes all later stages
+    const orderedKeys = stages.map(s => s.key);
+    stageValues = stages.map((s, i) => {
+      const laterKeys = orderedKeys.slice(i);
+      const count = laterKeys.reduce((sum, k) => sum + (stageCounts[k]||0), 0);
+      const money = laterKeys.reduce((sum, k) => sum + (stageMoneys[k]||0), 0);
+      return { ...s, count, money };
+    });
+  } else {
+    // Use pre-aggregated data
+    const fk = f?.deals?.funnel || {};
+    stageValues = [
+      { ...stages[0], count:fk.leads||0, money:f?.deals?.clientRevenue||0 },
+      { ...stages[1], count:fk.kpSent||0, money:0 },
+      { ...stages[2], count:fk.kpAgreed||0, money:0 },
+      { ...stages[3], count:fk.recorded||0, money:0 },
+      { ...stages[4], count:fk.arrived||0, money:0 },
+      { ...stages[5], count:fk.completed||0, money:f?.deals?.wonRevenue||0 },
+      { ...stages[6], count:fk.paid||0, money:f?.deals?.wonProfit||0 },
+    ];
+  }
+
+  const maxVal = Math.max(...stageValues.map(s => metric === 'money' ? s.money : s.count), 1);
+  const firstVal = metric === 'money' ? stageValues[0]?.money : stageValues[0]?.count;
+
+  el.innerHTML = stageValues.map((s, i) => {
+    const val = metric === 'money' ? s.money : s.count;
+    const pct = val / maxVal * 100;
+    const cr = i > 0 && firstVal > 0 ? Math.round(val / firstVal * 100) : 100;
+    const display = metric === 'money' ? fmtShort(val) : val;
+    return `<div class="wb-funnel-step">
+      <div class="wb-funnel-label">${s.label}</div>
+      <div class="wb-funnel-bar-wrap">
+        <div class="wb-funnel-bar" style="width:${Math.max(pct,4)}%">${display}</div>
+      </div>
+      ${i > 0 ? `<span class="wb-funnel-cr">${cr}%</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function render_donut(w, el) {
+  const metric = w.metric || 'count';
+  const mix = DATA.fact?.deals?.mix || [];
+  const totalDeals = DATA.fact?.deals?.total || 1;
+
+  // Calculate values based on metric
+  const items = mix.map(m => {
+    let value;
+    if (metric === 'money') {
+      value = m.avgCheck * (m.pct / 100) * totalDeals;
+    } else if (metric === 'margin') {
+      const markup = m.markupType === 'zones' ? 0.22 : 0.18;
+      value = m.avgCheck * (m.pct / 100) * totalDeals * (markup / (1 + markup));
+    } else {
+      value = m.pct; // count = percentage
+    }
+    return { name: m.name, value, pct: m.pct };
+  });
+
+  // Recalc percentages for money/margin mode
+  if (metric !== 'count') {
+    const total = items.reduce((s, it) => s + it.value, 0) || 1;
+    items.forEach(it => it.pct = Math.round(it.value / total * 100));
+  }
+
+  const colors = ['#60a5fa','#a78bfa','#4ade80','#fbbf24'];
+  let gradientParts = [];
+  let cumPct = 0;
+  items.forEach((it, i) => {
+    gradientParts.push(`${colors[i]} ${cumPct}% ${cumPct + it.pct}%`);
+    cumPct += it.pct;
+  });
+
+  const legend = items.map((it, i) => `
+    <div class="wb-legend-item">
+      <div class="wb-legend-dot" style="background:${colors[i]}"></div>
+      <span class="wb-legend-pct">${it.pct}%</span>
+      <span>${it.name}</span>
+      ${metric !== 'count' ? `<span style="color:var(--rnp-text-muted);font-size:10px;margin-left:4px">${fmtShort(it.value)}</span>` : ''}
+    </div>
+  `).join('');
+
+  el.innerHTML = `<div class="wb-donut-wrap">
+    <div class="wb-donut" style="background:conic-gradient(${gradientParts.join(',')})"></div>
+    <div class="wb-donut-legend">${legend}</div>
+  </div>`;
+}
+
+function render_table(w, el) {
+  const deals = filterDeals(w.filters);
+  if (deals.length === 0) { el.innerHTML = '<div class="rnp-empty">Нет сделок</div>'; return; }
+
+  const sorted = [...deals].sort((a,b) => (b.opportunity||0) - (a.opportunity||0));
+  const limit = w.limit || 50;
+  const shown = sorted.slice(0, limit);
+
+  el.innerHTML = `<div style="max-height:360px;overflow:auto">
+    <table class="rnp-table">
+      <thead><tr><th>Сделка</th><th>Стадия</th><th>Сумма</th><th>Прибыль</th><th>Источник</th></tr></thead>
+      <tbody>${shown.map(d => `<tr>
+        <td style="text-align:left;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          <span style="color:var(--rnp-blue)" title="В реальном дашборде — ссылка на сделку в CRM">${d.title||'—'}</span>
+        </td>
+        <td style="text-align:left">${d.stage_name||'—'}</td>
+        <td>${fmt(d.opportunity)}</td>
+        <td style="color:${(d.profit||0)>0?'var(--rnp-green)':'var(--rnp-text-muted)'}">${fmt(d.profit)}</td>
+        <td style="font-size:10px;color:var(--rnp-text-muted)">${d.responsible||d.source||'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>
+  ${deals.length > limit ? `<div style="padding:4px;font-size:10px;color:var(--rnp-text-muted);text-align:center">Показано ${limit} из ${deals.length}</div>` : ''}`;
+}
+
+function render_line(w, el) {
+  // Simple SVG sparkline from available data
+  // For now, show a placeholder with the current value
+  const val = getVal(w.dataPath);
+  const cat = DATA_CATALOG.find(c => c.key === w.dataPath);
+  el.innerHTML = `<div style="text-align:center;padding:16px 0">
+    <div style="font-size:11px;color:var(--rnp-text-muted);margin-bottom:8px">${cat?.label||w.dataPath}</div>
+    <div style="font-size:28px;letter-spacing:-0.02em">${fmtAuto(val, cat?.format||'money')}</div>
+    <div style="margin-top:8px;font-size:10px;color:var(--rnp-text-muted)">Тренд — скоро (нужны данные по месяцам)</div>
+  </div>`;
+}
+
+function render_hero(w, el) {
+  const value = getVal(w.valuePath || 'deals.wonProfit') || 0;
+  const total = getVal(w.totalPath || 'deals.totalProfit') || 0;
+  const pct = total > 0 ? Math.min(Math.round(value / total * 100), 100) : 0;
+  const color = value > 0 ? 'var(--rnp-green)' : 'var(--rnp-red)';
+
+  el.innerHTML = `<div class="wb-hero-center">
+    <div class="wb-hero-big" style="color:${color}">${fmt(value)}</div>
+    <div class="wb-hero-track"><div class="wb-hero-fill" style="width:${pct}%"></div></div>
+    <div class="wb-hero-sub">${pct}% из ${fmt(total)} · ${DATA.fact?.period||''}</div>
+  </div>`;
+}
+
+/* ─── pnlTable: построчный P&L (3 режима: grouped/dense/waterfall) ─── */
+
+// Build canonical row set once — used by all view modes
+function buildPnlRowSet(f) {
+  const gmvF = f.deals.clientRevenue || 0;
+  const transitF = f.deals.transitToPartner || 0;
+  const commissionF = f.deals.commissionEA || 0;
+  const marketingSpend = f.expenses.marketingSpend || 0;
+  const marketingFot = f.expenses.marketingFot || 0;
+  const fixedTotal = f.expenses.fixedTotal || 0;
+  const fixedList = f.expenses.fixed || [];
+  const acquiringF = f.expenses.acquiringFact || 0;
+  const taxF = f.tax.amountFact || 0;
+  const netF = f.netProfit || 0;
+
+  const gmvP = f.deals.totalPipeline || 0;
+  const transitP = f.deals.pipelineTransit || Math.max(gmvP - (f.deals.totalProfit||0), 0);
+  const commissionP = f.deals.totalProfit || 0;
+  const acquiringP = f.expenses.acquiringPipe || 0;
+  const taxP = f.tax.amountPipe || 0;
+  const netP = f.netProfitPipe || 0;
+
+  const variableTotal = marketingSpend + marketingFot;
+  const marginalF = commissionF - variableTotal;
+  const marginalP = commissionP - variableTotal;
+  const ebitdaF = marginalF - fixedTotal;
+  const ebitdaP = marginalP - fixedTotal;
+
+  return {
+    commissionF, commissionP, gmvF, gmvP,
+    income: [
+      { label: 'Выручка клиентов (GMV)',  fact: gmvF,        pipe: gmvP,        type: 'income',   drill: 'deals-all-opp' },
+      { label: 'Транзит партнёру',        fact: -transitF,   pipe: -transitP,   type: 'transit',  drill: 'deals-all-transit' },
+      { label: 'Комиссия EA',             fact: commissionF, pipe: commissionP, type: 'income',   drill: 'deals-all-profit', headline: true },
+    ],
+    variable: [
+      { label: 'Маркетинг (спенд)',       fact: -marketingSpend, pipe: -marketingSpend, type: 'expense', drill: 'marketing-spend' },
+      { label: 'ФОТ маркетинга',          fact: -marketingFot,   pipe: -marketingFot,   type: 'expense', drill: 'staff' },
+    ],
+    fixed: [
+      ...fixedList.map(fx => ({
+        label: fx.name || 'Расход',
+        fact: -(fx.amount || 0), pipe: -(fx.amount || 0),
+        type: 'expense', drill: 'fixed-' + (fx.id || fx.name),
+      })),
+    ],
+    final: [
+      { label: 'Эквайринг (3.5%)',        fact: -acquiringF, pipe: -acquiringP, type: 'expense',  drill: 'formula-acquiring' },
+      { label: 'Налог',                   fact: -taxF,       pipe: -taxP,       type: 'expense',  drill: 'formula-tax' },
+    ],
+    profits: {
+      marginal: { label: 'Marginal Profit', fact: marginalF, pipe: marginalP, type: marginalF >= 0 ? 'net-pos' : 'net-neg', headline: true },
+      ebitda:   { label: 'EBITDA',          fact: ebitdaF,   pipe: ebitdaP,   type: ebitdaF   >= 0 ? 'net-pos' : 'net-neg', headline: true },
+      net:      { label: 'ЧИСТАЯ ПРИБЫЛЬ',  fact: netF,      pipe: netP,      type: netF      >= 0 ? 'net-pos' : 'net-neg', final: true, drill: 'deals-all-profit' },
+    },
+  };
+}
+
+// % of commission EA (for expenses — how much of "our money" goes here)
+function pnlPctOfCommission(value, commission) {
+  if (!commission || commission === 0) return null;
+  return Math.abs(value) / Math.abs(commission) * 100;
+}
+
+// Format % compactly
+function pnlFmtPct(v) {
+  if (v == null) return '';
+  if (v >= 100) return Math.round(v) + '%';
+  if (v >= 10) return v.toFixed(0) + '%';
+  return v.toFixed(1) + '%';
+}
+
+// Compute fact color
+function pnlFactColor(r) {
+  if (r.fact == null) return '';
+  if (r.fact < 0) return 'var(--rnp-red)';
+  if (r.type === 'income' || r.type === 'net-pos') return 'var(--rnp-green)';
+  if (r.type === 'net-neg') return 'var(--rnp-red)';
+  return 'var(--rnp-text)';
+}
+
+// Dispatch renderer
+function render_pnlTable(w, el) {
+  const f = DATA.fact;
+  if (!f) { el.innerHTML = '<div class="rnp-empty">Нет данных</div>'; return; }
+
+  const mode = w.viewMode || 'grouped';
+  const data = buildPnlRowSet(f);
+
+  if (mode === 'dense')     return pnlRenderDense(w, el, data, f);
+  if (mode === 'waterfall') return pnlRenderWaterfall(w, el, data, f);
+  return pnlRenderGrouped(w, el, data, f); // default
+}
+
+/* ─── Mode 1: "Группы" — sections, bars normalized within group ─── */
+function pnlRenderGrouped(w, el, data, f) {
+  const { income, variable, fixed, final, profits, commissionF } = data;
+  const period = f.period || '—';
+
+  const section = (title, rows, maxAbsOverride, showPctOfCommission) => {
+    if (rows.length === 0) return '';
+    const maxAbs = maxAbsOverride || rows.reduce((m, r) => Math.max(m, Math.abs(r.fact||0), Math.abs(r.pipe||0)), 1);
+
+    let html = `<div class="wb-pnl-grp-head">${title}</div><div class="wb-pnl-grp-body">`;
+    for (const r of rows) {
+      const factAbs = Math.abs(r.fact || 0);
+      const pipeAbs = Math.abs(r.pipe || 0);
+      const factPct = maxAbs > 0 ? factAbs / maxAbs * 100 : 0;
+      const pipePct = maxAbs > 0 ? pipeAbs / maxAbs * 100 : 0;
+      const color = pnlFactColor(r);
+      const cls = r.headline ? 'wb-pnl-grp-headline' : r.final ? 'wb-pnl-grp-final' : '';
+      const onclick = r.drill ? `onclick="wbPnlToggleDrill('${w.id}','${r.drill}',this)"` : '';
+      const clickCls = r.drill ? 'wb-pnl-click' : '';
+      const pctCommission = showPctOfCommission ? pnlPctOfCommission(r.fact, commissionF) : null;
+      const pctLabel = pctCommission != null ? `<span class="wb-pnl-pct">${pnlFmtPct(pctCommission)}</span>` : '';
+
+      html += `<div class="wb-pnl-grp-row ${cls} ${clickCls}" ${onclick}>
+        <div class="wb-pnl-grp-label">${r.label}</div>
+        <div class="wb-pnl-grp-bar">
+          <div class="wb-pnl-bar-wrap">
+            <div class="wb-pnl-bar-pipe ${r.type}" style="width:${pipePct}%"></div>
+            <div class="wb-pnl-bar-fact ${r.type}" style="width:${factPct}%"></div>
+          </div>
+        </div>
+        ${pctLabel}
+        <div class="wb-pnl-grp-val" style="color:${color}">
+          ${fmt(r.fact)}
+          ${Math.abs(pipeAbs - factAbs) > 1 ? `<div class="wb-pnl-pipe-label">${fmt(r.pipe)}</div>` : ''}
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+    return html;
+  };
+
+  let html = `<div class="wb-pnl-groups">
+    <div class="wb-pnl-period-label">${period} · факт ◼ pipeline</div>`;
+
+  html += section('ДОХОДЫ', income, null, false);
+
+  // Variable + Marginal together
+  const varWithMarginal = [...variable, profits.marginal];
+  html += section('ПЕРЕМЕННЫЕ РАСХОДЫ → MARGINAL', varWithMarginal, null, true);
+
+  // Fixed + EBITDA together
+  if (fixed.length > 0) {
+    const fixedWithEbitda = [...fixed, profits.ebitda];
+    html += section('ПОСТОЯННЫЕ РАСХОДЫ → EBITDA', fixedWithEbitda, null, true);
+  }
+
+  // Final expenses + Net
+  const finalWithNet = [...final, profits.net];
+  html += section('НАЛОГИ / ЭКВАЙРИНГ → ЧИСТАЯ', finalWithNet, null, true);
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+/* ─── Mode 2: "Компакт" — single dense table with mini-bars ─── */
+function pnlRenderDense(w, el, data, f) {
+  const { income, variable, fixed, final, profits, commissionF } = data;
+  const period = f.period || '—';
+
+  // Combine all rows in order, keeping group breaks
+  const allRows = [
+    ...income.map(r => ({ ...r })),
+    { section: true, label: 'ПЕРЕМЕННЫЕ РАСХОДЫ' },
+    ...variable.map(r => ({ ...r, isExpense: true })),
+    { ...profits.marginal },
+    { section: true, label: 'ПОСТОЯННЫЕ РАСХОДЫ' },
+    ...fixed.map(r => ({ ...r, isExpense: true })),
+    { ...profits.ebitda },
+    ...final.map(r => ({ ...r, isExpense: true })),
+    { ...profits.net },
+  ];
+
+  // Normalize bars within expenses group (excluding the big income values)
+  const expenseMax = allRows.reduce((m, r) => {
+    if (r.section || !r.isExpense) return m;
+    return Math.max(m, Math.abs(r.fact||0));
+  }, 1);
+  const incomeMax = Math.max(Math.abs(income[0]?.fact||0), Math.abs(income[0]?.pipe||0), 1);
+  const profitMax = Math.max(Math.abs(profits.marginal.fact||0), Math.abs(profits.ebitda.fact||0), Math.abs(profits.net.fact||0), Math.abs(commissionF), 1);
+
+  let html = `<div style="max-height:520px;overflow:auto"><table class="wb-pnl-table wb-pnl-dense">
+    <thead><tr>
+      <th>Строка</th>
+      <th style="width:20%">Факт</th>
+      <th style="width:20%">Pipeline</th>
+      <th style="width:10%">% от комиссии</th>
+      <th style="width:20%">◼</th>
+    </tr></thead><tbody>`;
+
+  for (const r of allRows) {
+    if (r.section) {
+      html += `<tr class="wb-pnl-section"><td colspan="5">${r.label}</td></tr>`;
+      continue;
+    }
+    let cls = '';
+    if (r.headline) cls += 'wb-pnl-headline ';
+    if (r.final) cls += 'wb-pnl-final ';
+    if (r.drill) cls += 'wb-pnl-click ';
+
+    const factAbs = Math.abs(r.fact || 0);
+    const pipeAbs = Math.abs(r.pipe || 0);
+    const useMax = r.isExpense ? expenseMax : (r.headline || r.final ? profitMax : incomeMax);
+    const factPct = useMax > 0 ? factAbs / useMax * 100 : 0;
+    const pipePct = useMax > 0 ? pipeAbs / useMax * 100 : 0;
+
+    const color = pnlFactColor(r);
+    const pipeColor = 'var(--rnp-text-muted)';
+
+    // % — for expenses: from commission; for income: Gmv-based (skip first row)
+    let pctStr = '';
+    if (r.isExpense || r.headline || r.final) {
+      const pct = pnlPctOfCommission(r.fact, commissionF);
+      if (pct != null) pctStr = pnlFmtPct(pct);
+    }
+
+    const onclick = r.drill ? `onclick="wbPnlToggleDrill('${w.id}','${r.drill}',this)"` : '';
+
+    html += `<tr class="${cls}" ${onclick}>
+      <td class="wb-pnl-label">${r.label}</td>
+      <td class="wb-pnl-val" style="color:${color}">${fmt(r.fact)}</td>
+      <td class="wb-pnl-val" style="color:${pipeColor}">${r.pipe != null ? fmt(r.pipe) : ''}</td>
+      <td class="wb-pnl-val" style="color:var(--rnp-text-muted);font-size:11px">${pctStr}</td>
+      <td class="wb-pnl-bar-cell" style="padding:0 8px !important">
+        <div class="wb-pnl-bar-wrap" style="height:12px">
+          <div class="wb-pnl-bar-pipe ${r.type}" style="width:${pipePct}%"></div>
+          <div class="wb-pnl-bar-fact ${r.type}" style="width:${factPct}%"></div>
+        </div>
+      </td>
+    </tr>`;
+  }
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+/* ─── Mode 3: "Водопад" — waterfall chart on top, compact table below ─── */
+function pnlRenderWaterfall(w, el, data, f) {
+  const { income, variable, fixed, final, profits, commissionF } = data;
+  const period = f.period || '—';
+
+  // Build waterfall bars list (only fact values for the visual)
+  const wfRows = [
+    { label: 'GMV',              value: income[0].fact,         type: 'income' },
+    { label: 'Транзит',          value: income[1].fact,         type: 'transit' },
+    { label: 'Комиссия EA',      value: income[2].fact,         type: 'income',  marker: true },
+    ...variable.map(v => ({ label: v.label, value: v.fact, type: 'expense' })),
+    { label: profits.marginal.label, value: profits.marginal.fact, type: profits.marginal.type, marker: true },
+    ...fixed.map(fx => ({ label: fx.label, value: fx.fact, type: 'expense' })),
+    { label: profits.ebitda.label,   value: profits.ebitda.fact,   type: profits.ebitda.type,   marker: true },
+    ...final.map(fn => ({ label: fn.label, value: fn.fact, type: 'expense' })),
+    { label: profits.net.label,      value: profits.net.fact,      type: profits.net.type,      marker: true, final: true },
+  ];
+
+  const maxAbs = wfRows.reduce((m, r) => Math.max(m, Math.abs(r.value||0)), 1);
+
+  let wfHtml = `<div class="wb-pnl-wf">`;
+  for (const r of wfRows) {
+    const pct = Math.abs(r.value) / maxAbs * 100;
+    const color = r.value >= 0
+      ? (r.type === 'income' || r.type === 'net-pos' ? 'var(--rnp-green)' : (r.type === 'transit' ? '#64748b' : 'var(--rnp-green)'))
+      : 'var(--rnp-red)';
+    const cls = r.marker ? (r.final ? 'wb-pnl-wf-final' : 'wb-pnl-wf-marker') : '';
+    wfHtml += `<div class="wb-pnl-wf-row ${cls}">
+      <div class="wb-pnl-wf-label">${r.label}</div>
+      <div class="wb-pnl-wf-bar-wrap">
+        <div class="wb-pnl-wf-bar ${r.type}" style="width:${pct}%;background:${color}"></div>
+      </div>
+      <div class="wb-pnl-wf-val" style="color:${color}">${fmt(r.value)}</div>
+    </div>`;
+  }
+  wfHtml += '</div>';
+
+  // Compact table below
+  const allRows = [
+    ...income,
+    { section: true, label: 'Переменные' },
+    ...variable,
+    profits.marginal,
+    ...(fixed.length > 0 ? [{ section: true, label: 'Постоянные' }, ...fixed, profits.ebitda] : [profits.ebitda]),
+    ...final,
+    profits.net,
+  ];
+
+  let tblHtml = `<table class="wb-pnl-table wb-pnl-dense" style="margin-top:12px">
+    <thead><tr>
+      <th>Строка</th><th style="width:25%">Факт</th><th style="width:25%">Pipeline</th><th style="width:15%">%</th>
+    </tr></thead><tbody>`;
+
+  for (const r of allRows) {
+    if (r.section) {
+      tblHtml += `<tr class="wb-pnl-section"><td colspan="4">${r.label}</td></tr>`;
+      continue;
+    }
+    let cls = '';
+    if (r.headline) cls += 'wb-pnl-headline ';
+    if (r.final) cls += 'wb-pnl-final ';
+    if (r.drill) cls += 'wb-pnl-click ';
+
+    const color = pnlFactColor(r);
+    const pct = (r.type === 'expense' || r.headline || r.final) ? pnlPctOfCommission(r.fact, commissionF) : null;
+    const onclick = r.drill ? `onclick="wbPnlToggleDrill('${w.id}','${r.drill}',this)"` : '';
+
+    tblHtml += `<tr class="${cls}" ${onclick}>
+      <td class="wb-pnl-label">${r.label}</td>
+      <td class="wb-pnl-val" style="color:${color}">${fmt(r.fact)}</td>
+      <td class="wb-pnl-val" style="color:var(--rnp-text-muted)">${r.pipe != null ? fmt(r.pipe) : ''}</td>
+      <td class="wb-pnl-val" style="color:var(--rnp-text-muted);font-size:11px">${pct != null ? pnlFmtPct(pct) : ''}</td>
+    </tr>`;
+  }
+  tblHtml += '</tbody></table>';
+
+  el.innerHTML = `<div class="wb-pnl-period-label">${period}</div>${wfHtml}${tblHtml}`;
+}
+
+/* ─── Drill-down for P&L rows ─── */
+async function wbPnlToggleDrill(widgetId, drillKey, rowEl) {
+  // Close existing drill under this widget
+  const widgetEl = document.querySelector(`[data-wid="${widgetId}"]`);
+  if (!widgetEl) return;
+  const existing = widgetEl.querySelector('.wb-pnl-drill-row');
+  if (existing) {
+    const wasFor = existing.dataset.for;
+    existing.remove();
+    widgetEl.querySelectorAll('.wb-pnl-click.is-open').forEach(r => r.classList.remove('is-open'));
+    if (wasFor === drillKey) return; // same row → just close
+  }
+
+  rowEl.classList.add('is-open');
+
+  // Insert drilldown row after the clicked row
+  const tr = document.createElement('tr');
+  tr.className = 'wb-pnl-drill-row';
+  tr.dataset.for = drillKey;
+  const td = document.createElement('td');
+  td.colSpan = 3;
+  const box = document.createElement('div');
+  box.className = 'wb-pnl-drill-box';
+  box.innerHTML = '<div class="wb-pnl-drill-loading">Загрузка...</div>';
+  td.appendChild(box);
+  tr.appendChild(td);
+  rowEl.parentNode.insertBefore(tr, rowEl.nextSibling);
+
+  try {
+    const html = await wbPnlLoadDrill(drillKey);
+    box.innerHTML = html;
+  } catch (e) {
+    box.innerHTML = `<div class="wb-pnl-drill-empty" style="color:var(--rnp-red)">Ошибка: ${e.message}</div>`;
+  }
+}
+
+async function wbPnlLoadDrill(drillKey) {
+  const f = DATA.fact;
+  if (!f) return '<div class="wb-pnl-drill-empty">Нет данных</div>';
+
+  // Static drills (no API call)
+  if (drillKey === 'marketing-spend') {
+    const mk = f.expenses.marketingByName || {};
+    const entries = Object.entries(mk);
+    if (entries.length === 0) return '<div class="wb-pnl-drill-empty">Нет данных по кампаниям</div>';
+    return entries.map(([name, amt]) => `
+      <div class="wb-pnl-drill-row-item">
+        <span style="flex:1">Яндекс Директ — ${name}</span>
+        <span class="dd-amt" style="color:var(--rnp-red)">${fmt(-amt)}</span>
+      </div>
+    `).join('');
+  }
+
+  if (drillKey === 'staff') {
+    const staff = f.expenses.staff || [];
+    if (staff.length === 0) return '<div class="wb-pnl-drill-empty">Нет сотрудников</div>';
+    return staff.map(s => `
+      <div class="wb-pnl-drill-row-item">
+        <span style="flex:1">${s.name} — ${s.role || ''} (${s.detail || s.cost_type})</span>
+        <span class="dd-amt" style="color:var(--rnp-red)">${fmt(-(s.amount||0))}</span>
+      </div>
+    `).join('');
+  }
+
+  if (drillKey.startsWith('fixed-')) {
+    const fx = (f.expenses.fixed || []).find(x => 'fixed-' + (x.id || x.name) === drillKey);
+    if (!fx) return '<div class="wb-pnl-drill-empty">Не найдено</div>';
+    return `<div class="wb-pnl-drill-row-item">
+      <span style="flex:1">${fx.name} (${fx.category || ''})</span>
+      <span class="dd-amt" style="color:var(--rnp-red)">${fmt(-(fx.amount||0))}</span>
+    </div>`;
+  }
+
+  if (drillKey === 'formula-acquiring') {
+    const fact = f.expenses.acquiringFact || 0;
+    const pipe = f.expenses.acquiringPipe || 0;
+    return `<div class="wb-pnl-drill-row-item">
+      <span style="flex:1">3.5% × 70% безнал от выручки</span>
+      <span style="color:var(--rnp-text-muted);font-size:10px;margin-right:12px">факт: ${fmt(-fact)} · pipe: ${fmt(-pipe)}</span>
+    </div>`;
+  }
+
+  if (drillKey === 'formula-tax') {
+    const tax = f.tax || {};
+    const regime = tax.regime || 'usn_15';
+    return `<div class="wb-pnl-drill-row-item">
+      <span style="flex:1">Режим: ${regime} · ставка ${Math.round((tax.rate||0)*100)}%</span>
+      <span style="color:var(--rnp-text-muted);font-size:10px;margin-right:12px">факт: ${fmt(-(tax.amountFact||0))} · pipe: ${fmt(-(tax.amountPipe||0))}</span>
+    </div>`;
+  }
+
+  // Deal-based drills
+  const field = drillKey === 'deals-all-opp' ? 'opportunity'
+             : drillKey === 'deals-all-transit' ? 'transit'
+             : drillKey === 'deals-all-profit' ? 'profit'
+             : null;
+  if (!field) return '<div class="wb-pnl-drill-empty">Нет данных для этой строки</div>';
+
+  const deals = [...(DATA.deals || [])];
+  if (deals.length === 0) return '<div class="wb-pnl-drill-empty">Нет сделок в периоде</div>';
+
+  const isWon = d => {
+    const s = (d.stage_name||'').toLowerCase();
+    return s.includes('paid') || s.includes('completed') || s.includes('won');
+  };
+
+  // Sort: won first (desc by value), then pipeline deals (desc by value)
+  deals.sort((a, b) => {
+    const aWon = isWon(a) ? 1 : 0;
+    const bWon = isWon(b) ? 1 : 0;
+    if (aWon !== bWon) return bWon - aWon;
+    const av = field === 'transit' ? ((a.opportunity||0) - (a.profit||0)) : (a[field] || 0);
+    const bv = field === 'transit' ? ((b.opportunity||0) - (b.profit||0)) : (b[field] || 0);
+    return bv - av;
+  });
+
+  const limit = 100;
+  const shown = deals.slice(0, limit);
+
+  let html = '';
+  for (const d of shown) {
+    const won = isWon(d);
+    const val = field === 'transit' ? ((d.opportunity||0) - (d.profit||0)) : (d[field] || 0);
+    const badge = won
+      ? '<span class="wb-pnl-drill-won-badge">WON</span>'
+      : '<span class="wb-pnl-drill-pipe-badge">pipe</span>';
+    html += `<div class="wb-pnl-drill-row-item ${won ? 'is-won' : ''}">
+      ${badge}
+      <span style="color:var(--rnp-blue)" title="В реальном дашборде — ссылка на сделку в CRM (${d.title||''})">${d.title || '—'}</span>
+      <span class="dd-stage">${d.stage_name || ''}</span>
+      <span class="dd-amt" style="color:${won ? 'var(--rnp-green)' : 'var(--rnp-text-muted)'}">${fmt(val)}</span>
+    </div>`;
+  }
+
+  if (deals.length > limit) {
+    html += `<div class="wb-pnl-drill-empty">Показано ${limit} из ${deals.length}</div>`;
+  }
+
+  return html;
+}
+
+/* ─── marketerCompare: Дмитрий vs Илья в таблице ─── */
+function render_marketerCompare(w, el) {
+  const f = DATA.fact;
+  if (!f) { el.innerHTML = '<div class="rnp-empty">Нет данных</div>'; return; }
+
+  // Aggregate rnp rows by owner for the current period
+  const rnp = DATA.rnp || [];
+  const agg = { 'Дмитрий': {}, 'Илья': {} };
+  const fields = ['spend','clicks','impressions','leads','qualLeads','appointments','arrivals','payments','payments_pipeline','revenue','revenue_pipeline','gmv'];
+  for (const name of Object.keys(agg)) {
+    for (const f of fields) agg[name][f] = 0;
+  }
+  for (const r of rnp) {
+    const a = agg[r.owner];
+    if (!a) continue;
+    for (const k of fields) a[k] += r[k] || 0;
+  }
+
+  const dm = agg['Дмитрий'];
+  const il = agg['Илья'];
+
+  // Spend: prefer rnp-aggregated (per-day accurate). Fall back to summary.marketing if rnp empty.
+  const dmSpend = dm.spend || f.marketing.dmitry?.budget || 0;
+  const ilSpend = il.spend || f.marketing.ilya?.budget || 0;
+  // FOT from summary (pro-rated by range already done on server)
+  const dmFot = f.marketing.dmitry?.fot || 0;
+  const ilFot = il.fot || f.marketing.ilya?.fot || 0;
+
+  const dmLeads = dm.leads;
+  const ilLeads = il.leads;
+  const dmCPL = dmLeads > 0 ? dmSpend / dmLeads : 0;
+  const ilCPL = ilLeads > 0 ? ilSpend / ilLeads : 0;
+
+  // Appointments / arrivals / payments — voronka steps
+  const dmAppt = dm.appointments;
+  const ilAppt = il.appointments;
+  const dmArr = dm.arrivals;
+  const ilArr = il.arrivals;
+  const dmPaid = dm.payments;
+  const ilPaid = il.payments;
+
+  // GMV (opportunity) and Commission (revenue = EA profit) — actual WON money
+  const dmGmv = dm.gmv;
+  const ilGmv = il.gmv;
+  const dmComm = dm.revenue;
+  const ilComm = il.revenue;
+  // Pipeline projections
+  const dmCommPipe = dm.revenue_pipeline;
+  const ilCommPipe = il.revenue_pipeline;
+
+  const dmCAC = dmPaid > 0 ? (dmSpend + dmFot) / dmPaid : 0;
+  const ilCAC = ilPaid > 0 ? (ilSpend + ilFot) / ilPaid : 0;
+
+  const dmInvest = dmSpend + dmFot;
+  const ilInvest = ilSpend + ilFot;
+  const dmROMI = dmInvest > 0 ? ((dmComm - dmInvest) / dmInvest) * 100 : 0;
+  const ilROMI = ilInvest > 0 ? ((ilComm - ilInvest) / ilInvest) * 100 : 0;
+
+  const dmMarg = dmComm - dmInvest;
+  const ilMarg = ilComm - ilInvest;
+
+  const CAC_FLAG = 6000;
+  const noData = rnp.length === 0;
+
+  const rows = [
+    { label: 'Spend (Y.Direct)', d: dmSpend, i: ilSpend, format: 'money' },
+    { label: 'Лиды', d: dmLeads, i: ilLeads, format: 'num' },
+    { label: 'CPL', d: dmCPL, i: ilCPL, format: 'money' },
+    { label: 'Квал. лиды', d: dm.qualLeads, i: il.qualLeads, format: 'num' },
+    { label: 'Встречи назначены', d: dmAppt, i: ilAppt, format: 'num' },
+    { label: 'Доехали', d: dmArr, i: ilArr, format: 'num' },
+    { label: 'Оплачено', d: dmPaid, i: ilPaid, format: 'num' },
+    { label: 'GMV', d: dmGmv, i: ilGmv, format: 'money' },
+    { label: 'Комиссия EA (факт)', d: dmComm, i: ilComm, format: 'money', headline: true },
+    { label: 'Комиссия (pipeline)', d: dmCommPipe, i: ilCommPipe, format: 'money', muted: true },
+    { label: 'ФОТ', d: dmFot, i: ilFot, format: 'money' },
+    { label: 'CAC', d: dmCAC, i: ilCAC, format: 'money', headline: true, flagRed: v => v > CAC_FLAG && v > 0 },
+    { label: 'ROMI', d: dmROMI, i: ilROMI, format: 'pctRaw', headline: true, colorSign: true },
+    { label: 'Marginal', d: dmMarg, i: ilMarg, format: 'money', headline: true, colorSign: true },
+  ];
+
+  // Determine leader (by Marginal)
+  const leader = dmMarg > ilMarg ? 'd' : (ilMarg > dmMarg ? 'i' : null);
+
+  let html = `<table class="wb-mcomp-table">
+    <thead><tr>
+      <th>Метрика</th>
+      <th>Дмитрий ${leader==='d'?'<span class="wb-leader">★</span>':''}</th>
+      <th>Илья ${leader==='i'?'<span class="wb-leader">★</span>':''}</th>
+    </tr></thead><tbody>`;
+
+  // Helper: format cell with fallback for empty data
+  const showCell = (val, fmt, muted) => {
+    if (noData && val === 0) return '<span style="color:var(--rnp-text-muted);opacity:0.35">—</span>';
+    if (val === 0 || val == null) return '<span style="color:var(--rnp-text-muted);opacity:0.5">—</span>';
+    const s = fmtAuto(val, fmt);
+    return muted ? `<span style="color:var(--rnp-text-muted);font-size:11px">${s}</span>` : s;
+  };
+
+  for (const r of rows) {
+    let cls = r.headline ? 'wb-pnl-headline' : '';
+    if (r.muted) cls += ' wb-pnl-muted';
+    const dStyle = [];
+    const iStyle = [];
+    if (r.flagRed?.(r.d)) dStyle.push('color:var(--rnp-red)');
+    if (r.flagRed?.(r.i)) iStyle.push('color:var(--rnp-red)');
+    if (r.colorSign) {
+      if (r.d !== 0) dStyle.push('color:' + (r.d > 0 ? 'var(--rnp-green)' : 'var(--rnp-red)'));
+      if (r.i !== 0) iStyle.push('color:' + (r.i > 0 ? 'var(--rnp-green)' : 'var(--rnp-red)'));
+    }
+    html += `<tr class="${cls}">
+      <td class="wb-pnl-label">${r.label}</td>
+      <td class="wb-pnl-val" style="${dStyle.join(';')}">${showCell(r.d, r.format, r.muted)}</td>
+      <td class="wb-pnl-val" style="${iStyle.join(';')}">${showCell(r.i, r.format, r.muted)}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+
+  // Banner if rnp data is missing
+  if (noData) {
+    html += `<div style="margin-top:8px;padding:6px 10px;background:rgba(251,191,36,.08);border-left:3px solid var(--rnp-yellow);border-radius:4px;font-size:11px;color:var(--rnp-yellow)">
+      ⚠ Нет данных РНП в этом периоде — проверь синк Яндекс.Директа
+    </div>`;
+  }
+
+  // Alert line if any CAC > threshold
+  if (!noData && (dmCAC > CAC_FLAG || ilCAC > CAC_FLAG)) {
+    html += `<div style="margin-top:8px;padding:6px 10px;background:rgba(248,113,113,.1);border-left:3px solid var(--rnp-red);border-radius:4px;font-size:11px;color:var(--rnp-red)">
+      ⚠ CAC превысил ${fmt(CAC_FLAG)} — маркетолог работает в минус
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+/* ─── unitEconByComplex: Unit economics по типу комплекса ─── */
+function render_unitEconByComplex(w, el) {
+  const f = DATA.fact;
+  if (!f) { el.innerHTML = '<div class="rnp-empty">Нет данных</div>'; return; }
+
+  const mix = f.deals.mix || [];
+  // Use WON deals count for unit-economics (actually received money base)
+  const wonDeals = f.deals.wonDeals || 0;
+  const totalDeals = wonDeals > 0 ? wonDeals : (f.deals.total || 0);
+  const totalSpend = (f.marketing.dmitry.budget || 0) + (f.marketing.ilya.budget || 0);
+  const totalFot = (f.marketing.dmitry.fot || 0) + (f.marketing.ilya.fot || 0);
+  const cacBase = totalSpend + totalFot;
+  const cacPerDeal = totalDeals > 0 ? cacBase / totalDeals : 0;
+
+  const rows = mix.map(m => {
+    const count = Math.round(totalDeals * (m.pct / 100));
+    const gmvEach = m.avgCheck || 0;
+    const markup = m.markupType === 'zones' ? 0.22 : 0.18;
+    const commEach = gmvEach * (markup / (1 + markup));
+    const marginalEach = commEach - cacPerDeal;
+    const marginalPct = commEach > 0 ? marginalEach / commEach : 0;
+    return {
+      name: m.name, count, pct: m.pct,
+      gmvEach, commEach, cacPerDeal,
+      marginalEach, marginalPct,
+    };
+  });
+
+  // Find best and worst marginal
+  let best = null, worst = null;
+  for (const r of rows) {
+    if (!best || r.marginalPct > best.marginalPct) best = r;
+    if (r.marginalEach < 0 && (!worst || r.marginalEach < worst.marginalEach)) worst = r;
+  }
+
+  let html = `<table class="wb-ue-table">
+    <thead><tr>
+      <th>Комплекс</th>
+      <th>Кол-во</th>
+      <th>Доля</th>
+      <th>Ср. чек</th>
+      <th>Комиссия</th>
+      <th>CAC</th>
+      <th>Marginal</th>
+      <th>Marg %</th>
+    </tr></thead><tbody>`;
+
+  for (const r of rows) {
+    let rowStyle = '';
+    if (r === best) rowStyle = 'background:rgba(74,222,128,.08)';
+    else if (r === worst) rowStyle = 'background:rgba(248,113,113,.08)';
+    const margColor = r.marginalEach >= 0 ? 'var(--rnp-green)' : 'var(--rnp-red)';
+
+    html += `<tr style="${rowStyle}">
+      <td class="wb-pnl-label">${r.name}</td>
+      <td>${r.count}</td>
+      <td style="color:var(--rnp-text-muted)">${r.pct}%</td>
+      <td>${fmt(r.gmvEach)}</td>
+      <td>${fmt(r.commEach)}</td>
+      <td style="color:var(--rnp-text-muted)">${fmt(r.cacPerDeal)}</td>
+      <td style="color:${margColor}">${fmt(r.marginalEach)}</td>
+      <td style="color:${margColor}">${fmtPct(r.marginalPct)}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+const RENDERERS = {
+  kpi: render_kpi,
+  bar: render_bar,
+  waterfall: render_waterfall,
+  funnel: render_funnel,
+  donut: render_donut,
+  table: render_table,
+  line: render_line,
+  hero: render_hero,
+  pnlTable: render_pnlTable,
+  marketerCompare: render_marketerCompare,
+  unitEconByComplex: render_unitEconByComplex,
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   WIDGET CHROME — header with inline controls
+   ═══════════════════════════════════════════════════════════════════ */
+
+function widgetId() {
+  return 'w_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+}
+
+/* Build inline controls based on widget type */
+/* ═══════════════════════════════════════════════════════════════════
+   WIDGET VIEWS — variations of how the same widget renders data
+   ═══════════════════════════════════════════════════════════════════ */
+const WIDGET_VIEWS = {
+  pnlTable: [
+    { key: 'grouped',   label: 'Группы',   icon: '⊟' },
+    { key: 'dense',     label: 'Компакт',  icon: '☰' },
+    { key: 'waterfall', label: 'Водопад',  icon: '▃' },
+  ],
+  // Future: funnel, donut, etc. can declare their own views here
+};
+
+function buildInlineControls(w) {
+  let html = '<div class="wb-ctrl">';
+
+  // View mode selector (for types that have multiple views)
+  const views = WIDGET_VIEWS[w.type];
+  if (views && views.length > 1) {
+    const current = w.viewMode || views[0].key;
+    html += `<select data-ctrl="viewMode" onchange="updateWidgetCtrl('${w.id}','viewMode',this.value)" title="Вид">
+      ${views.map(v => `<option value="${v.key}" ${current===v.key?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+    </select>`;
+  }
+
+  // Metric selector (for types that support it)
+  if (['funnel','donut','bar'].includes(w.type)) {
+    html += `<select data-ctrl="metric" onchange="updateWidgetCtrl('${w.id}','metric',this.value)" title="Метрика">
+      <option value="count" ${w.metric==='count'?'selected':''}>Кол-во</option>
+      <option value="money" ${w.metric==='money'?'selected':''}>Деньги</option>
+      ${w.type==='donut'?`<option value="margin" ${w.metric==='margin'?'selected':''}>Маржа</option>`:''}
+    </select>`;
+  }
+
+  // Source filter (for types that work with deals)
+  if (['funnel','table','waterfall'].includes(w.type)) {
+    const sources = DIMENSIONS[0].values();
+    html += `<select data-ctrl="source" onchange="updateWidgetCtrl('${w.id}','source',this.value)" title="Источник">
+      ${sources.map(s => `<option value="${s.value}" ${(w.filters?.source||'')===s.value?'selected':''}>${s.label}</option>`).join('')}
+    </select>`;
+  }
+
+  // Size selector
+  html += `<select data-ctrl="size" onchange="updateWidgetCtrl('${w.id}','size',this.value)" title="Размер">
+    <option value="full" ${w.size==='full'?'selected':''}>▬▬ full</option>
+    <option value="half" ${w.size==='half'?'selected':''}>▬ half</option>
+    <option value="third" ${w.size==='third'?'selected':''}>▬ third</option>
+    <option value="quarter" ${w.size==='quarter'?'selected':''}>▪ quarter</option>
+  </select>`;
+
+  // Action buttons
+  html += `<button class="wb-btn-icon" onclick="cloneWidget('${w.id}')" title="Дублировать">⧉</button>`;
+  html += `<button class="wb-btn-icon wb-btn-delete" onclick="removeWidget('${w.id}')" title="Удалить">&times;</button>`;
+  html += '</div>';
+  return html;
+}
+
+function updateWidgetCtrl(id, ctrl, value) {
+  const w = LAYOUT.find(w => w.id === id);
+  if (!w) return;
+
+  if (ctrl === 'metric') { w.metric = value; }
+  else if (ctrl === 'source') {
+    if (!w.filters) w.filters = {};
+    w.filters.source = value || null;
+  }
+  else if (ctrl === 'size') {
+    w.size = value;
+    // Update grid class immediately
+    const el = document.querySelector(`[data-wid="${id}"]`);
+    if (el) {
+      el.classList.remove('wb-full','wb-half','wb-third','wb-quarter');
+      el.classList.add('wb-' + value);
+    }
+  }
+  else if (ctrl === 'viewMode') { w.viewMode = value; }
+
+  // Re-render just this widget's body
+  const body = document.getElementById('wbody-' + id);
+  if (body) {
+    const renderer = RENDERERS[w.type];
+    if (renderer) renderer(w, body);
+  }
+  saveLayout();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   GRID RENDERING + DRAG & DROP
+   ═══════════════════════════════════════════════════════════════════ */
+
+let LAYOUT = [];
+
+/* ═══════════════════════════════════════════════════════════════════
+   POINTER-BASED DRAG & DROP with FLIP animation
+   ═══════════════════════════════════════════════════════════════════ */
+const DND = {
+  active: false,
+  widgetId: null,
+  ghostEl: null,
+  sourceEl: null,
+  gapEl: null,         // placeholder in grid
+  startX: 0, startY: 0,
+  offsetX: 0, offsetY: 0,
+  currentInsertIdx: -1,
+  moved: false,        // did pointer actually move?
+  DRAG_THRESHOLD: 5,   // px before drag starts
+};
+
+function dndPointerDown(e, wid) {
+  // Only start on left button, and only from header area
+  if (e.button !== 0) return;
+  // Don't drag if clicking on interactive elements
+  if (e.target.closest('select, button, [contenteditable]')) return;
+
+  DND.widgetId = wid;
+  DND.startX = e.clientX;
+  DND.startY = e.clientY;
+  DND.moved = false;
+  DND.active = false;
+
+  const el = document.querySelector(`[data-wid="${wid}"]`);
+  if (!el) return;
+  DND.sourceEl = el;
+
+  // Compute offset from pointer to element top-left
+  const rect = el.getBoundingClientRect();
+  DND.offsetX = e.clientX - rect.left;
+  DND.offsetY = e.clientY - rect.top;
+
+  document.addEventListener('pointermove', dndPointerMove);
+  document.addEventListener('pointerup', dndPointerUp);
+  // Prevent text selection while dragging
+  e.preventDefault();
+}
+
+function dndPointerMove(e) {
+  const dx = e.clientX - DND.startX;
+  const dy = e.clientY - DND.startY;
+
+  // Check threshold before starting drag
+  if (!DND.active) {
+    if (Math.abs(dx) < DND.DRAG_THRESHOLD && Math.abs(dy) < DND.DRAG_THRESHOLD) return;
+    dndStartDrag(e);
+  }
+
+  // Move ghost
+  if (DND.ghostEl) {
+    DND.ghostEl.style.left = (e.clientX - DND.offsetX) + 'px';
+    DND.ghostEl.style.top = (e.clientY - DND.offsetY) + 'px';
+  }
+
+  // Find insert position
+  dndUpdateInsertPosition(e);
+}
+
+function dndStartDrag(e) {
+  DND.active = true;
+  DND.moved = true;
+  const el = DND.sourceEl;
+  if (!el) return;
+
+  // Create ghost — clone of the widget
+  const rect = el.getBoundingClientRect();
+  const ghost = el.cloneNode(true);
+  ghost.className = 'wb-ghost';
+  ghost.style.width = rect.width + 'px';
+  ghost.style.height = rect.height + 'px';
+  ghost.style.left = rect.left + 'px';
+  ghost.style.top = rect.top + 'px';
+  document.body.appendChild(ghost);
+  DND.ghostEl = ghost;
+
+  // Fade source
+  el.classList.add('dragging');
+
+  // Create gap placeholder
+  const gap = document.createElement('div');
+  gap.className = `wb-drop-gap wb-${getWidgetById(DND.widgetId)?.size||'half'}`;
+  gap.style.minHeight = rect.height + 'px';
+  DND.gapEl = gap;
+
+  // Record positions of all widgets BEFORE we modify DOM (FLIP: First)
+  recordPositions();
+
+  // Insert gap where the source widget was
+  const grid = document.getElementById('widget-grid');
+  const sourceIdx = [...grid.children].indexOf(el);
+  DND.currentInsertIdx = sourceIdx;
+  grid.insertBefore(gap, el.nextSibling);
+  el.style.display = 'none'; // hide original, gap takes its place
+
+  // Capture lock to prevent scroll issues
+  el.setPointerCapture?.(e.pointerId);
+}
+
+function dndUpdateInsertPosition(e) {
+  const grid = document.getElementById('widget-grid');
+  const children = [...grid.children].filter(c => c !== DND.gapEl && c.style.display !== 'none');
+
+  if (children.length === 0) return;
+
+  // Find closest widget to cursor
+  let bestIdx = 0;
+  let bestDist = Infinity;
+  let insertBefore = true;
+
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    const rect = child.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIdx = i;
+      // Above center → insert before, below → insert after
+      insertBefore = e.clientY < cy;
+    }
+  }
+
+  const targetChild = children[bestIdx];
+  const newIdx = insertBefore ? bestIdx : bestIdx + 1;
+
+  if (newIdx === DND.currentInsertIdx) return; // no change
+  DND.currentInsertIdx = newIdx;
+
+  // FLIP: First — record current positions
+  recordPositions();
+
+  // Move gap to new position
+  if (DND.gapEl.parentNode) DND.gapEl.remove();
+  if (insertBefore) {
+    grid.insertBefore(DND.gapEl, targetChild);
+  } else {
+    grid.insertBefore(DND.gapEl, targetChild.nextSibling);
+  }
+
+  // FLIP: Last + Invert + Play
+  animateFlip();
+}
+
+// FLIP animation state
+let savedPositions = new Map();
+
+function recordPositions() {
+  savedPositions.clear();
+  const grid = document.getElementById('widget-grid');
+  for (const child of grid.children) {
+    if (child === DND.gapEl) continue;
+    const rect = child.getBoundingClientRect();
+    savedPositions.set(child, { x: rect.left, y: rect.top });
+  }
+}
+
+function animateFlip() {
+  const grid = document.getElementById('widget-grid');
+  for (const child of grid.children) {
+    if (child === DND.gapEl || child.style.display === 'none') continue;
+    const old = savedPositions.get(child);
+    if (!old) continue;
+    const newRect = child.getBoundingClientRect();
+    const dx = old.x - newRect.left;
+    const dy = old.y - newRect.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+
+    // Invert
+    child.style.transform = `translate(${dx}px, ${dy}px)`;
+    child.style.transition = 'none';
+
+    // Play
+    requestAnimationFrame(() => {
+      child.classList.add('wb-animating');
+      child.style.transform = '';
+      child.style.transition = '';
+      child.addEventListener('transitionend', function cleanup() {
+        child.classList.remove('wb-animating');
+        child.removeEventListener('transitionend', cleanup);
+      }, { once: true });
+    });
+  }
+}
+
+function dndPointerUp(e) {
+  document.removeEventListener('pointermove', dndPointerMove);
+  document.removeEventListener('pointerup', dndPointerUp);
+
+  if (!DND.active) {
+    DND.widgetId = null;
+    DND.sourceEl = null;
+    return;
+  }
+
+  // Remove ghost
+  if (DND.ghostEl) { DND.ghostEl.remove(); DND.ghostEl = null; }
+
+  // Show source again
+  if (DND.sourceEl) {
+    DND.sourceEl.classList.remove('dragging');
+    DND.sourceEl.style.display = '';
+  }
+
+  // Calculate new layout order from DOM order (gap position = where widget goes)
+  const grid = document.getElementById('widget-grid');
+  const newOrder = [];
+  for (const child of grid.children) {
+    if (child === DND.gapEl) {
+      // This is where the dragged widget should be inserted
+      const w = getWidgetById(DND.widgetId);
+      if (w) newOrder.push(w);
+    } else if (child.dataset?.wid && child.dataset.wid !== DND.widgetId) {
+      const w = getWidgetById(child.dataset.wid);
+      if (w) newOrder.push(w);
+    }
+  }
+
+  // If dragged widget wasn't placed via gap (edge case), append at end
+  if (!newOrder.find(w => w.id === DND.widgetId)) {
+    const w = getWidgetById(DND.widgetId);
+    if (w) newOrder.push(w);
+  }
+
+  // Remove gap
+  if (DND.gapEl) { DND.gapEl.remove(); DND.gapEl = null; }
+
+  // Update layout
+  LAYOUT = newOrder;
+
+  // Reset
+  DND.active = false;
+  DND.widgetId = null;
+  DND.sourceEl = null;
+  DND.currentInsertIdx = -1;
+
+  renderGrid();
+  renderAllWidgets();
+}
+
+function getWidgetById(id) {
+  return LAYOUT.find(w => w.id === id);
+}
+
+function renderGrid() {
+  const grid = document.getElementById('widget-grid');
+
+  if (LAYOUT.length === 0) {
+    grid.innerHTML = '<div class="wb-grid-empty">Нажми «+ Виджет» чтобы начать</div>';
+    updateCount();
+    return;
+  }
+
+  grid.innerHTML = '';
+
+  for (const w of LAYOUT) {
+    const div = document.createElement('div');
+    div.className = `wb-widget wb-${w.size||'half'} rnp-panel`;
+    div.dataset.wid = w.id;
+
+    div.innerHTML = `
+      <div class="wb-widget-header">
+        <span class="wb-widget-title" contenteditable="true" spellcheck="false"
+              onblur="renameWidget('${w.id}',this.textContent)">${w.title||w.type}</span>
+        ${buildInlineControls(w)}
+      </div>
+      <div class="wb-widget-body" id="wbody-${w.id}"></div>
+    `;
+
+    // Pointer-based drag from header
+    const header = div.querySelector('.wb-widget-header');
+    header.addEventListener('pointerdown', e => dndPointerDown(e, w.id));
+
+    grid.appendChild(div);
+  }
+
+  updateCount();
+}
+
+function renderAllWidgets() {
+  for (const w of LAYOUT) {
+    const el = document.getElementById('wbody-' + w.id);
+    if (!el) continue;
+    const renderer = RENDERERS[w.type];
+    if (renderer) renderer(w, el);
+  }
+  saveLayout();
+}
+
+function updateCount() {
+  const el = document.getElementById('widget-count');
+  if (el) el.textContent = LAYOUT.length ? `${LAYOUT.length} виджет${LAYOUT.length>4||LAYOUT.length===0?'ов':LAYOUT.length>1?'а':''}` : '';
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   WIDGET ACTIONS
+   ═══════════════════════════════════════════════════════════════════ */
+
+function cloneWidget(id) {
+  const w = LAYOUT.find(x => x.id === id);
+  if (!w) return;
+  const clone = JSON.parse(JSON.stringify(w));
+  clone.id = widgetId();
+  clone.title = (w.title || w.type) + ' (копия)';
+  const idx = LAYOUT.indexOf(w);
+  LAYOUT.splice(idx + 1, 0, clone);
+  renderGrid();
+  renderAllWidgets();
+}
+
+function removeWidget(id) {
+  LAYOUT = LAYOUT.filter(w => w.id !== id);
+  renderGrid();
+  renderAllWidgets();
+}
+
+function renameWidget(id, newTitle) {
+  const w = LAYOUT.find(x => x.id === id);
+  if (w) { w.title = newTitle.trim(); saveLayout(); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   WIZARD — add new widget
+   ═══════════════════════════════════════════════════════════════════ */
+
+const WIDGET_TYPES = [
+  { type:'kpi',       icon:'#',  label:'KPI',       desc:'Число с подписью' },
+  { type:'pnlTable',  icon:'Σ',  label:'P&L табл.', desc:'Построчно: выручка → прибыль' },
+  { type:'marketerCompare', icon:'⇄', label:'Сравн. маркет.', desc:'Дмитрий vs Илья' },
+  { type:'unitEconByComplex', icon:'◧', label:'Unit econ.', desc:'Маржа по комплексу' },
+  { type:'bar',       icon:'▬',  label:'Бары',      desc:'Горизонтальное сравнение' },
+  { type:'waterfall', icon:'▊',  label:'Waterfall',  desc:'Доходы и расходы' },
+  { type:'funnel',    icon:'▽',  label:'Воронка',   desc:'Воронка продаж' },
+  { type:'donut',     icon:'◑',  label:'Donut',     desc:'Кольцевая диаграмма' },
+  { type:'table',     icon:'☰',  label:'Таблица',   desc:'Таблица сделок' },
+  { type:'line',      icon:'⟋',  label:'График',    desc:'Значение метрики' },
+  { type:'hero',      icon:'▰',  label:'Прогресс',  desc:'X из Y' },
+];
+
+let wizardState = {};
+
+function openWizard() {
+  wizardState = { step: 1 };
+  renderWizardStep1();
+  document.getElementById('wizard-overlay').classList.add('open');
+}
+
+function closeWizard() {
+  document.getElementById('wizard-overlay').classList.remove('open');
+}
+
+function renderWizardStep1() {
+  document.getElementById('wizard-title').textContent = 'Выбери тип виджета';
+  document.getElementById('wizard-foot').innerHTML = '';
+  document.getElementById('wizard-body').innerHTML = `
+    <div class="wb-type-grid">
+      ${WIDGET_TYPES.map(t => `
+        <div class="wb-type-card" onclick="wizardSelectType('${t.type}')">
+          <span class="wb-tc-icon">${t.icon}</span>
+          <div class="wb-tc-label">${t.label}</div>
+          <div class="wb-tc-desc">${t.desc}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function wizardSelectType(type) {
+  wizardState.type = type;
+  renderWizardStep2();
+}
+
+function renderWizardStep2() {
+  const t = wizardState.type;
+  document.getElementById('wizard-title').textContent = `Настройка: ${WIDGET_TYPES.find(x=>x.type===t)?.label||t}`;
+
+  let configHtml = `
+    <div class="wb-config-row">
+      <div class="wb-config-label">Название</div>
+      <div class="wb-config-input"><input type="text" id="wiz-title" placeholder="${WIDGET_TYPES.find(x=>x.type===t)?.label||t}"></div>
+    </div>
+    <div class="wb-config-row">
+      <div class="wb-config-label">Размер</div>
+      <div class="wb-config-input">
+        <select id="wiz-size">
+          <option value="full">Full (вся ширина)</option>
+          <option value="half" selected>Half (половина)</option>
+          <option value="third">Third (треть)</option>
+          <option value="quarter">Quarter (четверть)</option>
+        </select>
+      </div>
+    </div>
+  `;
+
+  if (t === 'kpi') {
+    configHtml += `
+      <div class="wb-config-row">
+        <div class="wb-config-label">Метрика</div>
+        <div class="wb-config-input"><select id="wiz-dataPath">${catalogOptions('deals.commissionEA')}</select></div>
+      </div>
+      <div class="wb-config-row">
+        <div class="wb-config-label">Цвет</div>
+        <div class="wb-config-input">
+          <select id="wiz-accent">
+            <option value="blue">Синий</option><option value="green">Зелёный</option>
+            <option value="violet">Фиолетовый</option><option value="yellow">Жёлтый</option><option value="red">Красный</option>
+          </select>
+        </div>
+      </div>
+    `;
+  } else if (t === 'hero') {
+    configHtml += `
+      <div class="wb-config-row">
+        <div class="wb-config-label">Значение</div>
+        <div class="wb-config-input"><select id="wiz-valuePath">${catalogOptions('deals.wonProfit')}</select></div>
+      </div>
+      <div class="wb-config-row">
+        <div class="wb-config-label">Из (всего)</div>
+        <div class="wb-config-input"><select id="wiz-totalPath">${catalogOptions('deals.totalProfit')}</select></div>
+      </div>
+    `;
+  } else if (t === 'line') {
+    configHtml += `
+      <div class="wb-config-row">
+        <div class="wb-config-label">Метрика</div>
+        <div class="wb-config-input"><select id="wiz-dataPath">${catalogOptions('deals.commissionEA')}</select></div>
+      </div>
+    `;
+  } else if (['funnel','donut'].includes(t)) {
+    configHtml += `
+      <div class="wb-config-row">
+        <div class="wb-config-label">Показывать</div>
+        <div class="wb-config-input">
+          <select id="wiz-metric">
+            <option value="count">Количество</option>
+            <option value="money">Деньги</option>
+            ${t==='donut'?'<option value="margin">Маржа</option>':''}
+          </select>
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById('wizard-body').innerHTML = configHtml;
+  document.getElementById('wizard-foot').innerHTML = `
+    <button class="rnp-button rnp-button-secondary" onclick="renderWizardStep1()">Назад</button>
+    <button class="rnp-button" onclick="wizardAdd()">Добавить</button>
+  `;
+}
+
+function wizardAdd() {
+  const t = wizardState.type;
+  const w = {
+    id: widgetId(),
+    type: t,
+    title: document.getElementById('wiz-title')?.value || WIDGET_TYPES.find(x=>x.type===t)?.label || t,
+    size: document.getElementById('wiz-size')?.value || 'half',
+    metric: document.getElementById('wiz-metric')?.value || 'count',
+    filters: {},
+  };
+
+  if (t === 'kpi') {
+    w.dataPath = document.getElementById('wiz-dataPath')?.value || 'deals.total';
+    w.accent = document.getElementById('wiz-accent')?.value || 'blue';
+  } else if (t === 'hero') {
+    w.valuePath = document.getElementById('wiz-valuePath')?.value || 'deals.wonProfit';
+    w.totalPath = document.getElementById('wiz-totalPath')?.value || 'deals.totalProfit';
+  } else if (t === 'line') {
+    w.dataPath = document.getElementById('wiz-dataPath')?.value || 'deals.commissionEA';
+  }
+
+  LAYOUT.push(w);
+  closeWizard();
+  renderGrid();
+  renderAllWidgets();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PERSISTENCE
+   ═══════════════════════════════════════════════════════════════════ */
+
+function saveLayout() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ v:LAYOUT_VERSION, widgets:LAYOUT })); } catch(e) {}
+}
+
+function loadLayout() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data.v === LAYOUT_VERSION && Array.isArray(data.widgets)) {
+        LAYOUT = data.widgets;
+        return true;
+      }
+    }
+  } catch(e) {}
+  return false;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DEFAULT LAYOUT
+   ═══════════════════════════════════════════════════════════════════ */
+
+const DEFAULT_LAYOUT = [
+  { id:'w_def_hero', type:'hero', title:'Комиссия получена', valuePath:'deals.wonProfit', totalPath:'deals.totalProfit', size:'full' },
+  { id:'w_def_k1', type:'kpi', title:'Всего сделок', dataPath:'deals.total', size:'quarter', accent:'blue' },
+  { id:'w_def_k2', type:'kpi', title:'Комиссия EA', dataPath:'deals.commissionEA', size:'quarter', accent:'green' },
+  { id:'w_def_k3', type:'kpi', title:'Чистая прибыль', dataPath:'netProfit', size:'quarter', accent:'yellow' },
+  { id:'w_def_k4', type:'kpi', title:'ROMI', dataPath:'romi', size:'quarter', accent:'red' },
+  { id:'w_def_pnl', type:'pnlTable', title:'P&L — построчно', size:'full' },
+  { id:'w_def_mcomp', type:'marketerCompare', title:'Дмитрий vs Илья', size:'half' },
+  { id:'w_def_ue', type:'unitEconByComplex', title:'Unit economics по комплексу', size:'half' },
+  { id:'w_def_fn', type:'funnel', title:'Воронка продаж', metric:'count', size:'half', filters:{} },
+  { id:'w_def_dn', type:'donut', title:'Микс комплексов', metric:'count', size:'half' },
+  { id:'w_def_tbl', type:'table', title:'Сделки', size:'full', filters:{} },
+];
+
+function resetLayout() {
+  if (!confirm('Сбросить к стандартному макету?')) return;
+  LAYOUT = JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
+  renderGrid();
+  renderAllWidgets();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════ */
+
+const PERIOD_STORAGE_KEY = 'ea-wb-period';
+
+function savePeriod() {
+  try { localStorage.setItem(PERIOD_STORAGE_KEY, JSON.stringify(PERIOD)); } catch(e) {}
+}
+
+function loadPeriodState() {
+  try {
+    const raw = localStorage.getItem(PERIOD_STORAGE_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    if (p && p.mode) {
+      PERIOD.mode = p.mode;
+      PERIOD.offset = p.offset || 0;
+      PERIOD.from = p.from || null;
+      PERIOD.to = p.to || null;
+    }
+  } catch(e) {}
+}
+
+async function init() {
+  if (!loadLayout()) {
+    LAYOUT = JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
+  }
+  loadPeriodState();
+
+  // Sync period-select with saved state
+  const sel = document.getElementById('wb-period-select');
+  if (sel && ['7','14','30','60','90','mtd','custom'].includes(PERIOD.mode)) {
+    sel.value = PERIOD.mode;
+  }
+  toggleCustomRange();
+  updatePeriodUI();
+
+  // Period select change
+  sel.addEventListener('change', () => {
+    PERIOD.mode = sel.value;
+    PERIOD.offset = 0;
+    toggleCustomRange();
+    if (PERIOD.mode === 'custom') {
+      // Initialize default range if not set
+      if (!PERIOD.from || !PERIOD.to) {
+        const today = new Date(); today.setHours(0,0,0,0);
+        PERIOD.to = toISO(today);
+        PERIOD.from = toISO(addDays(today, -29));
+      }
+      initLitepicker();
+      if (LITEPICKER) LITEPICKER.setDateRange(PERIOD.from, PERIOD.to);
+      updateTriggerLabel();
+    }
+    updatePeriodUI();
+    savePeriod();
+    reloadAll();
+  });
+
+  // Prev/next
+  document.getElementById('wb-prev').addEventListener('click', () => {
+    PERIOD.offset++;
+    updatePeriodUI();
+    savePeriod();
+    reloadAll();
+  });
+  document.getElementById('wb-next').addEventListener('click', () => {
+    if (PERIOD.offset > 0) {
+      PERIOD.offset--;
+      updatePeriodUI();
+      savePeriod();
+      reloadAll();
+    }
+  });
+
+  // Preset buttons in custom range
+  document.querySelectorAll('.wb-cr-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.wb-cr-preset').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      applyPresetRange(btn.dataset.preset);
+      savePeriod();
+    });
+  });
+
+  // Mode toggle
+  document.querySelectorAll('#mode-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#mode-toggle button').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      reloadAll();
+    });
+  });
+
+  try {
+    loadSyncStatus();
+  } catch(e) {}
+
+  // If we start in custom mode, init picker immediately
+  if (PERIOD.mode === 'custom') {
+    initLitepicker();
+  }
+
+  renderGrid();
+  reloadAll();
+}
+
+async function reloadAll() {
+  try {
+    await loadFactFromAPI();
+  } catch(e) {
+    console.error('Data load failed:', e);
+    document.getElementById('widget-grid').innerHTML = `<div class="wb-grid-empty" style="color:var(--rnp-red)">Ошибка загрузки: ${e.message}</div>`;
+    return;
+  }
+  renderAllWidgets();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
